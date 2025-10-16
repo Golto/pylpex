@@ -1,0 +1,12 @@
+// Commentaire
+/*
+    Multi-line
+    comment
+*/
+123 4.7
+"hello world" "hello \nworld"
+x some_variable
+none not and or true false function return if else for while
+== != <= >= **
++ - * / % = < > ( ) { } [ ] , ; : .
++= -= *= /= %= **=

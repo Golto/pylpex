@@ -9,23 +9,59 @@ class TokenType(Enum):
     FLOAT = "FLOAT"
     STRING = "STRING"
     BOOLEAN = "BOOLEAN"
-    COMPLEX = "COMPLEX"
-    VECTOR = "VECTOR"
+    LIST = "LIST"
+    DICTIONARY = "DICTIONARY"
+    NONE = "NONE"
     # Operators
     PLUS = "PLUS"
     MINUS = "MINUS"
     MUL = "MUL"
     DIV = "DIV"
+    POWER = "POWER"
+    MOD = "MOD"
+    # Logical operators
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+    # Comparison
+    EQ = "EQ"
+    NEQ = "NEQ"
+    LT = "LT"
+    GT = "GT"
+    LTE = "LTE"
+    GTE = "GTE"
+    # Assignment
+    ASSIGN = "ASSIGN"
+    PLUS_ASSIGN = "PLUS_ASSIGN"
+    MINUS_ASSIGN = "MINUS_ASSIGN"
+    MUL_ASSIGN = "MUL_ASSIGN"
+    DIV_ASSIGN = "DIV_ASSIGN"
+    MOD_ASSIGN = "MOD_ASSIGN"
+    POWER_ASSIGN = "POWER_ASSIGN"
+    # Delimiters
     LPAREN = "LPAREN"
     RPAREN = "RPAREN"
+    LBRACE = "LBRACE"
+    RBRACE = "RBRACE"
+    LBRACKET = "LBRACKET"
+    RBRACKET = "RBRACKET"
+    COMMA = "COMMA"
+    SEMICOLON = "SEMICOLON"
+    COLON = "COLON"
+    DOT = "DOT"
     # Keywords
     FUNCTION = "FUNCTION"
     RETURN = "RETURN"
     IF = "IF"
     ELSE = "ELSE"
+    WHILE = "WHILE"
+    FOR = "FOR"
     # Identifiers
     IDENTIFIER = "IDENTIFIER"
-    
+    # Special
+    EOF = "EOF"
+    COMMENT = "COMMENT"
+    NEWLINE = "NEWLINE"
 
     def __repr__(self):
         return f"<{self.__class__.__name__}.{self.value}>"
