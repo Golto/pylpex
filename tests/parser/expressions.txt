@@ -1,0 +1,32 @@
+// literals
+none
+5
+4.69
+'hello world'
+true
+false
+some_variable
+
+// unary operations
+-7
++4.5
+not true
+
+// postfixes (indexing, attributes)
+some_list[47]
+other_list[pre_index][post_index]
+
+human.name
+node.value.type
+
+// mixed up
+- human.friends[2].age
+
+// lists
+[1, 2, 3]
+['a', 'b', 'c']
+[1, 2, 3, [4, 5, 6]]
+
+// dictionaries
+{'a': 1, 'b': 2}
+{'a': 1, 'b': 2, 'c': {'d': 3, 'e': 4}}

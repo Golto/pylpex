@@ -2,16 +2,18 @@ from typing import Tuple
 from enum import Enum
 from dataclasses import dataclass
 
-
+# TODO add keywords: in, break, continue
 class TokenType(Enum):
     # Data types
+    NONE = "NONE"
     INTEGER = "INTEGER"
     FLOAT = "FLOAT"
     STRING = "STRING"
     BOOLEAN = "BOOLEAN"
     LIST = "LIST"
     DICTIONARY = "DICTIONARY"
-    NONE = "NONE"
+    # Identifiers
+    IDENTIFIER = "IDENTIFIER"
     # Operators
     PLUS = "PLUS"
     MINUS = "MINUS"
@@ -56,8 +58,6 @@ class TokenType(Enum):
     ELSE = "ELSE"
     WHILE = "WHILE"
     FOR = "FOR"
-    # Identifiers
-    IDENTIFIER = "IDENTIFIER"
     # Special
     EOF = "EOF"
     COMMENT = "COMMENT"

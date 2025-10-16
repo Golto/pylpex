@@ -3,13 +3,14 @@ from typing import List, Optional
 from .tokens import Token, TokenType
 
 
-class LexerError(Exception):
-    """Erreur de syntaxe détectée pendant l'analyse lexicale"""
+class LexicalError(Exception):
+    """Erreur lexicale détectée pendant l'analyse lexicale"""
     def __init__(self, message: str, line: int, column: int):
         self.message = message
         self.line = line
         self.column = column
-        super().__init__(f"Erreur de syntaxe à la ligne {line}, colonne {column}: {message}")
+        super().__init__(f"Erreur lexicale à la ligne {line}, colonne {column}: {message}")
+
 
 class Lexer:
 
@@ -30,6 +31,7 @@ class Lexer:
             'or': TokenType.OR,
             'not': TokenType.NOT,
             # Keywords
+            'def': TokenType.FUNCTION, # NOTE Python heritage
             'function': TokenType.FUNCTION,
             'return': TokenType.RETURN,
             'if': TokenType.IF,
@@ -287,7 +289,7 @@ class Lexer:
                 self.advance()
                 return Token(token_type, char, line, col)
 
-            raise LexerError(f"Caractère inattendu '{char}'", line, col)
+            raise LexicalError(f"Caractère inattendu '{char}'", line, col)
 
         return Token(TokenType.EOF, '', self.line, self.column)
 
