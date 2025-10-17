@@ -38,6 +38,9 @@ class Lexer:
             'else': TokenType.ELSE,
             'while': TokenType.WHILE,
             'for': TokenType.FOR,
+            'in': TokenType.IN,
+            'break': TokenType.BREAK,
+            'continue': TokenType.CONTINUE,
         }
 
     # -----------------------------------------------------

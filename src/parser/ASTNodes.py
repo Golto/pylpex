@@ -102,7 +102,7 @@ class AssignmentOperatorType(TypeEnum):
 @dataclass
 class AssignmentNode(ASTNode):
     """Nœud pour les assignations (=, +=, -=, etc.)"""
-    target: str  # nom de la variable
+    target: ASTNode  # nom de la variable
     operator: AssignmentOperatorType  # '=', '+=', '-=', etc.
     value: ASTNode
 
@@ -124,6 +124,8 @@ class BinaryOperatorType(TypeEnum):
     GT = ">"
     LTE = "<="
     GTE = ">="
+    IN = "in"
+    NOT_IN = "not in"
 
 class UnaryOperatorType(TypeEnum):
     POSITIVE = "+"
@@ -155,12 +157,17 @@ class UnaryOpNode(ASTNode):
 # -----------------------------------------------------
 # Expressions
 
+@dataclass
+class ArgumentNode(ASTNode):
+    """Argument d'appel de fonction (positionnel ou nommé)"""
+    name: Optional[str]  # None pour les positionnels
+    value: ASTNode 
 
 @dataclass
 class CallNode(ASTNode):
     """Nœud pour les appels de fonction ( f(a, b) )"""
-    function: str
-    arguments: List[ASTNode]
+    function: Union[str, ASTNode] # support pour "obj.foo()"
+    arguments: List[ArgumentNode]
 
 
 @dataclass
@@ -180,19 +187,23 @@ class AttributeNode(ASTNode):
 # -----------------------------------------------------
 # Statements
 
-
 @dataclass
-class ReturnNode(ASTNode):
-    """Nœud pour les retours de fonction"""
-    value: Optional[ASTNode]
-
+class ParameterNode(ASTNode):
+    """Paramètre de fonction, possiblement avec valeur par défaut"""
+    name: str
+    default_value: Optional[ASTNode] = None
 
 @dataclass
 class FunctionDefNode(ASTNode):
     """Nœud pour les définitions de fonctions"""
     name: str
-    parameters: List[str]
+    parameters: List[ParameterNode]
     body: List[ASTNode]
+
+@dataclass
+class ReturnNode(ASTNode):
+    """Nœud pour les retours de fonction"""
+    value: Optional[ASTNode]
 
 
 @dataclass
@@ -217,4 +228,12 @@ class ForNode(ASTNode):
     iterable: ASTNode
     body: List[ASTNode]
 
-# TODO break, continue
+
+@dataclass
+class BreakNode(ASTNode):
+    """Nœud pour l'instruction break"""
+
+
+@dataclass
+class ContinueNode(ASTNode):
+    """Nœud pour l'instruction continue"""

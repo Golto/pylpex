@@ -1,0 +1,104 @@
+// literals
+none
+5
+4.69
+'hello world'
+true
+false
+some_variable
+
+// unary operations
+-7
++4.5
+not true
+
+// postfixes (indexing, attributes)
+some_list[47]
+other_list[pre_index][post_index]
+
+human.name
+node.value.type
+
+// mixed up
+- human.friends[2].age
+
+// lists
+[1, 2, 3]
+['a', 'b', 'c']
+[1, 2, 3, [4, 5, 6]]
+
+// dictionaries
+{'a': 1, 'b': 2}
+{'a': 1, 'b': 2, 'c': {'d': 3, 'e': 4}}
+
+// binary operations
+1 + 2
+47 - 58 * 6
+(47 - 58) * 6
+index + 7 * (4 + divisor / 5 % 7) ** 2
+78 > 47
+78 >= 47
+78 < 47
+78 <= 47
+78 == 47
+78 != 47
+12 == 21 and 21 < 12
+12 == 21 or 21 < 12
+
+// ternary operations
+42 if universe.question == 'The answer to life, the universe and everything' else none
+
+// assignments
+x = 42
+position += velocity * dt
+position -= velocity * dt
+power *= 2
+power /= 2
+seed %= 17
+length **= 2
+
+// function calls
+print('Hello, world!')
+print('Hello, world!', end='\n')
+f(a, b, c, x = 3)
+
+// function definitions
+function f(a, b, c, x = 0) {
+    return a + b + c + x
+}
+
+// control flow
+
+if age > 18 'You are an adult'; // one line if statement requires a semicolon FIXME
+
+if age > 18 {
+    'You are an adult'
+}
+
+if age > 18 {
+    'You are an adult'
+} else {
+    'You are a minor'
+}
+
+
+while cond {
+    x += 1
+}
+
+for letter in 'hello' {
+    print(letter)
+}
+
+for index in [1, 2, 3] {
+    print(index)
+}
+
+for i in [1, 2, 3] {
+    if i == 2 {
+        continue;
+    }
+    if i == 3 {
+        break;
+    }
+}

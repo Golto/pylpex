@@ -58,6 +58,9 @@ class TokenType(Enum):
     ELSE = "ELSE"
     WHILE = "WHILE"
     FOR = "FOR"
+    IN = "IN"
+    BREAK = "BREAK"
+    CONTINUE = "CONTINUE"
     # Special
     EOF = "EOF"
     COMMENT = "COMMENT"

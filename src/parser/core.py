@@ -17,13 +17,16 @@ class ParseError(Exception):
 # TODO faire un mode strict pour les types
 # self.strict = False -> typage facultatif et ne cause pas d'erreur
 # self.strict = True -> typage obligatoire et cause une erreur si non respecté
+
+# TODO rajouter la position (line, column) dans les nodes pour les erreurs
+
 class Parser:
 
     BINARY_PRECEDENCE = {
         TokenType.OR: 1,
         TokenType.AND: 2,
         TokenType.EQ: 3, TokenType.NEQ: 3,
-        TokenType.LT: 4, TokenType.GT: 4, TokenType.LTE: 4, TokenType.GTE: 4,
+        TokenType.LT: 4, TokenType.GT: 4, TokenType.LTE: 4, TokenType.GTE: 4, TokenType.IN: 4,
         TokenType.PLUS: 5, TokenType.MINUS: 5,
         TokenType.MUL: 6, TokenType.DIV: 6, TokenType.MOD: 6,
         TokenType.POWER: 8,  # power is right-associative, handled specially
@@ -54,6 +57,7 @@ class Parser:
         TokenType.GT: BinaryOperatorType.GT,
         TokenType.LTE: BinaryOperatorType.LTE,
         TokenType.GTE: BinaryOperatorType.GTE,
+        TokenType.IN: BinaryOperatorType.IN,
     }
 
     UNARY_TOKEN_TO_ENUM = {
@@ -65,6 +69,7 @@ class Parser:
     def __init__(self, tokens: List[Token]):
         self.tokens = tokens
         self.position = 0
+        self.loop_depth = 0 # loop context (for break/continue)
         self.current_token = self.tokens[0] if tokens else None
 
     # -----------------------------------------------------
@@ -145,13 +150,50 @@ class Parser:
         if not self.current_token or self.current_token.type == TokenType.EOF:
             return None
         
-        # TODO keywords
+        # Manage keywords: function, if, while, for, return
+        if self.current_token.type == TokenType.FUNCTION:
+            return self.parse_function_def()
+        if self.current_token.type == TokenType.IF:
+            return self.parse_if()
+        if self.current_token.type == TokenType.WHILE:
+            return self.parse_while()
+        if self.current_token.type == TokenType.FOR:
+            return self.parse_for()
+        if self.current_token.type == TokenType.RETURN:
+            return self.parse_return()
+        if self.current_token.type == TokenType.BREAK:
+            return self.parse_break()
+        if self.current_token.type == TokenType.CONTINUE:
+            return self.parse_continue()
         
         # Expression statement
         expr = self.parse_expression()
         self.skip_whitespace_and_comments()
+
+        # Assignment management
+        if self.current_token and self.current_token.type in self.ASSIGNMENT_MAP:
+            op_token = self.current_token
+            op_type = self.ASSIGNMENT_MAP[op_token.type]
+            self.advance()  # consumes the operator
+            value = self.parse_expression()
+
+            # Check that the target is assignable
+            if not isinstance(expr, (IdentifierNode, AttributeNode, IndexNode)):
+                raise ParseError("La partie gauche d'une affectation doit être une variable, un attribut ou un index", op_token)
+
+            node = AssignmentNode(
+                target=expr,
+                operator=op_type,
+                value=value
+            )
+
+            # Optional: Semicolon (for affectations)
+            if self.current_token and self.current_token.type == TokenType.SEMICOLON:
+                self.advance()
+            return node
+            
         
-        # Optionnel: Semicolon
+        # Optional: Semicolon (for expressions)
         if self.current_token and self.current_token.type == TokenType.SEMICOLON:
             self.advance()
         
@@ -164,6 +206,42 @@ class Parser:
         left = self.parse_unary_or_primary()
 
         # TODO while loop, binops, ternary
+        while True:
+            self.skip_whitespace_and_comments()
+            token = self.current_token
+            if not token:
+                break
+
+            # <true_expr> if <cond> else <false_expr>
+            if token.type == TokenType.IF:
+                self.advance()  # consume 'if'
+                cond = self.parse_expression()
+                self.skip_whitespace_and_comments()
+                if not self.current_token or self.current_token.type != TokenType.ELSE:
+                    raise ParseError("Ternary 'if' sans 'else'", token)
+                self.advance()  # consume 'else'
+                false_expr = self.parse_expression()
+                left = TernaryNode(condition=cond, true_expr=left, false_expr=false_expr)
+                continue
+
+            # binary operator
+            if token.type in self.BINARY_PRECEDENCE:
+                prec = self.BINARY_PRECEDENCE[token.type]
+                # power operator is right associative
+                right_assoc = (token.type == TokenType.POWER)
+                if prec < min_prec:
+                    break
+                self.advance()  # consume operator
+                # For right-assoc, use prec, else use prec+1
+                next_min = prec + (0 if right_assoc else 1)
+                right = self.parse_expression(next_min)
+                binop = self.BINARY_TOKEN_TO_ENUM.get(token.type)
+                if not binop:
+                    raise ParseError(f"Opérateur binaire non-supporté: {token.type}", token)
+                left = BinaryOpNode(left=left, operator=binop, right=right)
+                continue
+
+            break
 
         return left
     
@@ -187,31 +265,14 @@ class Parser:
         while self.current_token:
             token = self.current_token
 
-            # # call: IDENTIFIER '(' ... ')'
-            # if token.type == TokenType.LPAREN:
-            #     self.advance()  # consume '('
-            #     args = []
-            #     self.skip_whitespace_and_comments()
-            #     if self.current_token and self.current_token.type != TokenType.RPAREN:
-            #         while True:
-            #             arg = self.parse_expression()
-            #             args.append(arg)
-            #             self.skip_whitespace_and_comments()
-            #             if self.current_token and self.current_token.type == TokenType.COMMA:
-            #                 self.advance()
-            #                 self.skip_whitespace_and_comments()
-            #                 continue
-            #             break
-            #     self.expect(TokenType.RPAREN)
-            #     # function may be IdentifierNode or something else; for AST we kept CallNode.function as str earlier,
-            #     # but better to store the function expression; here we handle simple identifier names
-            #     if isinstance(node, IdentifierNode):
-            #         node = CallNode(function=node.name, arguments=args)
-            #     else:
-            #         # if more complex (attribute call), wrap attribute/object representation as string?
-            #         # Simpler: convert to CallNode with function repr
-            #         node = CallNode(function=repr(node), arguments=args)
-            #     continue
+            # call: IDENTIFIER '(' ... ')'
+            if token.type == TokenType.LPAREN:
+                args = self.parse_argument_list()
+                if isinstance(node, IdentifierNode):
+                    node = CallNode(function=node.name, arguments=args)
+                else:
+                    node = CallNode(function=repr(node), arguments=args)
+                continue
 
             # attribute .name
             if token.type == TokenType.DOT:
@@ -335,6 +396,198 @@ class Parser:
                 break
         self.expect(TokenType.RBRACE)
         return DictionaryNode(pairs=pairs)
+
+    
+    def parse_argument_list(self) -> List[ArgumentNode]:
+        """Parse les arguments d'appel de fonction (f(a, b, x=4))"""
+        args = []
+        self.expect(TokenType.LPAREN)
+        self.skip_whitespace_and_comments()
+
+        if self.current_token and self.current_token.type != TokenType.RPAREN:
+            while True:
+                expr = self.parse_expression()
+                # If a '=' follows, it is a named argument
+                if isinstance(expr, IdentifierNode) and self.current_token and self.current_token.type == TokenType.ASSIGN:
+                    self.advance()  # consomme '='
+                    value = self.parse_expression()
+                    args.append(ArgumentNode(name=expr.name, value=value))
+                else:
+                    args.append(ArgumentNode(name=None, value=expr))
+
+                self.skip_whitespace_and_comments()
+                if self.current_token and self.current_token.type == TokenType.COMMA:
+                    self.advance()
+                    self.skip_whitespace_and_comments()
+                    continue
+                break
+
+        self.expect(TokenType.RPAREN)
+        return args
+
+    
+    # --------------------
+    def parse_block(self) -> List[ASTNode]:
+        """Bloque délimité par { ... }"""
+        self.expect(TokenType.LBRACE)
+        stmts = []
+        self.skip_whitespace_and_comments()
+        while self.current_token and self.current_token.type != TokenType.RBRACE:
+            stmt = self.parse_statement()
+            if stmt:
+                stmts.append(stmt)
+            self.skip_whitespace_and_comments()
+        self.expect(TokenType.RBRACE)
+        return stmts
+    
+
+    def parse_if(self) -> IfNode:
+        self.expect(TokenType.IF)
+        self.skip_whitespace_and_comments()
+        # condition is an expression
+        cond = self.parse_expression()
+        self.skip_whitespace_and_comments()
+        then_block = None
+        else_block = None
+        # block or single statement
+        if self.current_token and self.current_token.type == TokenType.LBRACE:
+            then_block = self.parse_block()
+        else:
+            # single statement fallback
+            stmt = self.parse_statement()
+            then_block = [stmt] if stmt else []
+        self.skip_whitespace_and_comments()
+        if self.current_token and self.current_token.type == TokenType.ELSE:
+            self.advance()
+            self.skip_whitespace_and_comments()
+            if self.current_token and self.current_token.type == TokenType.LBRACE:
+                else_block = self.parse_block()
+            else:
+                stmt = self.parse_statement()
+                else_block = [stmt] if stmt else []
+        return IfNode(condition=cond, then_block=then_block, else_block=else_block)
+
+
+    def parse_while(self) -> WhileNode:
+        self.expect(TokenType.WHILE)
+        cond = self.parse_expression()
+        self.skip_whitespace_and_comments()
+
+        self.loop_depth += 1
+        if self.current_token and self.current_token.type == TokenType.LBRACE:
+            body = self.parse_block()
+        else:
+            stmt = self.parse_statement()
+            body = [stmt] if stmt else []
+        self.loop_depth -= 1
+
+        return WhileNode(condition=cond, body=body)
+    
+
+    def parse_for(self) -> ForNode:
+        """Parse une boucle for (for x in iterable { ... })"""
+        self.expect(TokenType.FOR)
+
+        # variable
+        if not (self.current_token and self.current_token.type == TokenType.IDENTIFIER):
+            raise ParseError("Nom de variable attendu après 'for'", self.current_token)
+        var_name = self.current_token.value
+        self.advance()
+
+        # 'in' keyword
+        if not (self.current_token and self.current_token.type == TokenType.IN):
+            raise ParseError("Mot-clé 'in' attendu dans la boucle for", self.current_token)
+        self.advance()
+
+        # iterable expression
+        iterable_expr = self.parse_expression()
+
+        self.skip_whitespace_and_comments()
+        self.loop_depth += 1
+        body = self.parse_block()
+        self.loop_depth -= 1
+
+        return ForNode(variable=var_name, iterable=iterable_expr, body=body)
+
+    
+
+    def parse_parameter_list(self) -> List[ParameterNode]:
+        """Parse la liste des paramètres d'une fonction"""
+        params = []
+        self.expect(TokenType.LPAREN)
+        self.skip_whitespace_and_comments()
+
+        if self.current_token and self.current_token.type != TokenType.RPAREN:
+            while True:
+                if self.current_token.type != TokenType.IDENTIFIER:
+                    raise ParseError("Nom de paramètre attendu", self.current_token)
+                name = self.current_token.value
+                self.advance()
+                default_value = None
+                # valeur par défaut : " = expression"
+                if self.current_token and self.current_token.type == TokenType.ASSIGN:
+                    self.advance()
+                    default_value = self.parse_expression()
+                params.append(ParameterNode(name=name, default_value=default_value))
+
+                self.skip_whitespace_and_comments()
+                if self.current_token and self.current_token.type == TokenType.COMMA:
+                    self.advance()
+                    self.skip_whitespace_and_comments()
+                    continue
+                break
+
+        self.expect(TokenType.RPAREN)
+        return params
+
+
+    def parse_function_def(self) -> FunctionDefNode:
+        self.expect(TokenType.FUNCTION)
+        if not (self.current_token and self.current_token.type == TokenType.IDENTIFIER):
+            raise ParseError("Nom de fonction attendu", self.current_token)
+        name = self.current_token.value
+        self.advance()
+        params = self.parse_parameter_list()
+        self.skip_whitespace_and_comments()
+        body = self.parse_block()
+        return FunctionDefNode(name=name, parameters=params, body=body)
+
+
+
+    def parse_return(self) -> ReturnNode:
+        self.expect(TokenType.RETURN)
+        # optional expression
+        if self.current_token and self.current_token.type not in (TokenType.SEMICOLON, TokenType.NEWLINE, TokenType.EOF, TokenType.RBRACE):
+            val = self.parse_expression()
+        else:
+            val = None
+        if self.current_token and self.current_token.type == TokenType.SEMICOLON:
+            self.advance()
+        return ReturnNode(value=val)
+    
+
+    def parse_break(self) -> BreakNode:
+        """Parse l'instruction 'break'"""
+        self.expect(TokenType.BREAK)
+        if self.loop_depth == 0:
+            raise ParseError("'break' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
+
+        if self.current_token and self.current_token.type == TokenType.SEMICOLON:
+            self.advance()
+        return BreakNode()
+
+
+    def parse_continue(self) -> ContinueNode:
+        """Parse l'instruction 'continue'"""
+        self.expect(TokenType.CONTINUE)
+        if self.loop_depth == 0:
+            raise ParseError("'continue' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
+
+        if self.current_token and self.current_token.type == TokenType.SEMICOLON:
+            self.advance()
+        return ContinueNode()
+
+    
 
     # -----------------------------------------------------
     # Helper methods
