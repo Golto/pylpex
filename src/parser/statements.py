@@ -42,7 +42,8 @@ class StatementParser(BaseParser):
             if not isinstance(expr, (IdentifierNode, AttributeNode, IndexNode)):
                 raise ParseError("La partie gauche d'une affectation doit être une variable, un attribut ou un index", op_token)
 
-            node = AssignmentNode(
+            node = AssignmentNode.from_token(
+                token=op_token,
                 target=expr,
                 operator=op_type,
                 value=value
@@ -62,7 +63,7 @@ class StatementParser(BaseParser):
 
 
     def parse_if(self) -> IfNode: # TODO ajouter la possibilité de faire "else if"
-        self.expect(TokenType.IF)
+        start_token = self.expect(TokenType.IF)
         self.skip_whitespace_and_comments()
         # condition is an expression
         cond = self.parse_expression()
@@ -85,11 +86,11 @@ class StatementParser(BaseParser):
             else:
                 stmt = self.parse_statement()
                 else_block = [stmt] if stmt else []
-        return IfNode(condition=cond, then_block=then_block, else_block=else_block)
+        return IfNode.from_token(start_token, condition=cond, then_block=then_block, else_block=else_block)
 
 
     def parse_while(self) -> WhileNode:
-        self.expect(TokenType.WHILE)
+        start_token = self.expect(TokenType.WHILE)
         cond = self.parse_expression()
         self.skip_whitespace_and_comments()
 
@@ -101,12 +102,12 @@ class StatementParser(BaseParser):
             body = [stmt] if stmt else []
         self.loop_depth -= 1
 
-        return WhileNode(condition=cond, body=body)
+        return WhileNode.from_token(start_token, condition=cond, body=body)
     
 
     def parse_for(self) -> ForNode:
         """Parse une boucle for (for x in iterable { ... })"""
-        self.expect(TokenType.FOR)
+        start_token = self.expect(TokenType.FOR)
 
         # variable
         if not (self.current_token and self.current_token.type == TokenType.IDENTIFIER):
@@ -127,26 +128,26 @@ class StatementParser(BaseParser):
         body = self.parse_block()
         self.loop_depth -= 1
 
-        return ForNode(variable=var_name, iterable=iterable_expr, body=body)
+        return ForNode.from_token(start_token, variable=var_name, iterable=iterable_expr, body=body)
 
 
     def parse_break(self) -> BreakNode:
         """Parse l'instruction 'break'"""
-        self.expect(TokenType.BREAK)
+        start_token = self.expect(TokenType.BREAK)
         if self.loop_depth == 0:
             raise ParseError("'break' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
 
         if self.current_token and self.current_token.type == TokenType.SEMICOLON:
             self.advance()
-        return BreakNode()
+        return BreakNode.from_token(start_token)
 
 
     def parse_continue(self) -> ContinueNode:
         """Parse l'instruction 'continue'"""
-        self.expect(TokenType.CONTINUE)
+        start_token = self.expect(TokenType.CONTINUE)
         if self.loop_depth == 0:
             raise ParseError("'continue' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
 
         if self.current_token and self.current_token.type == TokenType.SEMICOLON:
             self.advance()
-        return ContinueNode()
+        return ContinueNode.from_token(start_token)

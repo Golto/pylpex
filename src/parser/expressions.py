@@ -25,7 +25,7 @@ class ExpressionParser(BaseParser):
                     raise ParseError("Ternary 'if' sans 'else'", token)
                 self.advance()  # consume 'else'
                 false_expr = self.parse_expression()
-                left = TernaryNode(condition=cond, true_expr=left, false_expr=false_expr)
+                left = TernaryNode.from_token(token, condition=cond, true_expr=left, false_expr=false_expr)
                 continue
 
             # binary operator
@@ -42,7 +42,7 @@ class ExpressionParser(BaseParser):
                 binop = self.BINARY_TOKEN_TO_ENUM.get(token.type)
                 if not binop:
                     raise ParseError(f"Opérateur binaire non-supporté: {token.type}", token)
-                left = BinaryOpNode(left=left, operator=binop, right=right)
+                left = BinaryOpNode.from_token(token, left=left, operator=binop, right=right)
                 continue
 
             break
@@ -58,7 +58,7 @@ class ExpressionParser(BaseParser):
             op = self.UNARY_TOKEN_TO_ENUM[token.type]
             self.advance()
             operand = self.parse_unary_or_primary()
-            return UnaryOpNode(operator=op, operand=operand)
+            return UnaryOpNode.from_token(token, operator=op, operand=operand)
         # else primary with possible postfix (call, attr, index)
         node = self.parse_primary()
         return self.parse_postfix(node)
@@ -73,9 +73,9 @@ class ExpressionParser(BaseParser):
             if token.type == TokenType.LPAREN:
                 args = self.parse_argument_list()
                 if isinstance(node, IdentifierNode):
-                    node = CallNode(function=node.name, arguments=args)
+                    node = CallNode.from_token(token, function=node.name, arguments=args)
                 else:
-                    node = CallNode(function=repr(node), arguments=args)
+                    node = CallNode.from_token(token, function=repr(node), arguments=args)
                 continue
 
             # attribute .name
@@ -85,7 +85,7 @@ class ExpressionParser(BaseParser):
                     raise ParseError("Attribut attendu après '.'", self.current_token)
                 attr_name = self.current_token.value
                 self.advance()
-                node = AttributeNode(object=node, attribute=attr_name)
+                node = AttributeNode.from_token(token, object=node, attribute=attr_name)
                 continue
 
             # index [expr]
@@ -93,7 +93,7 @@ class ExpressionParser(BaseParser):
                 self.advance()
                 index_expr = self.parse_expression()
                 self.expect(TokenType.RBRACKET)
-                node = IndexNode(collection=node, index=index_expr)
+                node = IndexNode.from_token(token, collection=node, index=index_expr)
                 continue
 
             break
@@ -108,39 +108,41 @@ class ExpressionParser(BaseParser):
         if not self.current_token:
             raise ParseError("Expression attendue, obtenu EOF")
         
+        token = self.current_token
+        
         # None
         if self.current_token.type == TokenType.NONE:
             self.advance()
-            return NoneNode()
+            return NoneNode.from_token(token)
         
         # Numbers
         if self.current_token.type == TokenType.INTEGER:
             value = int(self.current_token.value)
             self.advance()
-            return NumberNode(value, NumberType.INTEGER)
+            return NumberNode.from_token(token, value=value, type=NumberType.INTEGER)
         
         if self.current_token.type == TokenType.FLOAT:
             value = float(self.current_token.value)
             self.advance()
-            return NumberNode(value, NumberType.FLOAT)
+            return NumberNode.from_token(token, value=value, type=NumberType.FLOAT)
         
         # Strings
         if self.current_token.type == TokenType.STRING:
             value = self.current_token.value
             self.advance()
-            return StringNode(value)
+            return StringNode.from_token(token, value=value)
         
         # Booleans
         if self.current_token.type == TokenType.BOOLEAN:
             value = self.current_token.value == 'true'
             self.advance()
-            return BooleanNode(value)
+            return BooleanNode.from_token(token, value=value)
         
         # Identifiers
         if self.current_token.type == TokenType.IDENTIFIER:
             name = self.current_token.value
             self.advance()
-            return IdentifierNode(name)
+            return IdentifierNode.from_token(token, name=name)
         
         # Parentheses (group)
         if self.current_token.type == TokenType.LPAREN:

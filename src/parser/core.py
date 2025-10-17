@@ -11,6 +11,7 @@ class Parser(ExpressionParser, StatementParser, FunctionParser, StructureParser)
     def parse(self) -> ProgramNode:
         """Point d'entrée: parse tout le programme"""
         statements = []
+        token = self.current_token
         
         self.skip_whitespace_and_comments()
         
@@ -24,7 +25,7 @@ class Parser(ExpressionParser, StatementParser, FunctionParser, StructureParser)
             
             self.skip_whitespace_and_comments()
         
-        return ProgramNode(statements)
+        return ProgramNode.from_token(token=token, statements=statements)
     
     # -----------------------------------------------------
     # Helper methods

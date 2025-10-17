@@ -3,7 +3,7 @@ from typing import List, Optional, Union, Any
 from enum import Enum
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-
+from src.lexer import Token
 
 # -----------------------------------------------------
 # Abstract base class
@@ -12,6 +12,11 @@ from abc import ABC, abstractmethod
 class ASTNode(ABC):
     """Classe de base pour tous les nœuds de l'arbre syntaxique"""
     position: Optional[tuple[int, int]] = field(default=None, kw_only=True)  # (line, column)
+    
+    @classmethod
+    def from_token(cls, token: Token, **kwargs):
+        """Factory method pour créer un node avec position du token"""
+        return cls(**kwargs, position=(token.line, token.column))
     
     @property
     def line(self) -> Optional[int]:
