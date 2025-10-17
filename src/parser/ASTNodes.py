@@ -1,18 +1,27 @@
 
 from typing import List, Optional, Union, Any
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 
 # -----------------------------------------------------
 # Abstract base class
 
+@dataclass
 class ASTNode(ABC):
     """Classe de base pour tous les nœuds de l'arbre syntaxique"""
-    @abstractmethod
-    def __repr__(self):
-        pass
+    position: Optional[tuple[int, int]] = field(default=None, kw_only=True)  # (line, column)
+    
+    @property
+    def line(self) -> Optional[int]:
+        """Ligne de la position du node"""
+        return self.position[0] if self.position else None
+    
+    @property
+    def column(self) -> Optional[int]:
+        """Colonne de la position du node"""
+        return self.position[1] if self.position else None
 
 
 class TypeEnum(Enum):

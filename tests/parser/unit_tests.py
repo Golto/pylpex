@@ -53,6 +53,21 @@ TESTS = [
             "get_value(42, name='John Doe')"
         ]
     ),
+    (
+        "parse_statement",
+        [
+            "if true { 45 }",
+            "if true { 45 } else { 46 }",
+            "if true 45",
+            "while true { 45; 46 }",
+            "x in [1, 2, 3]",
+            "return", "return some_value",
+            "for x in list { break }",
+            "for x in list { continue }",
+            "while cond { break }",
+            "while cond { continue }",
+        ]
+    ),
 ]
 
 
