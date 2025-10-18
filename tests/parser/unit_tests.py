@@ -77,6 +77,7 @@ def get_test_cases():
 def run_tests(tests):
     from src.lexer import Lexer
     from src.parser import Parser
+    from src.utils import format_ast
     for parse_method, lines in tests:
         print(f"  Testing {parse_method.upper()}")
         print("=====================================")
@@ -87,6 +88,8 @@ def run_tests(tests):
             node = parser.__getattribute__(parse_method)()
             print("-------------------------------------")
             print(code)
-            print(node)
+            print(
+                format_ast(node)
+            )
         print()
         

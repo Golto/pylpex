@@ -13,6 +13,18 @@ class ParseError(Exception):
         else:
             super().__init__(f"Erreur de syntaxe: {message}")
 
+# TODO faire un mode strict pour les types
+# self.strict = False -> typage facultatif et ne cause pas d'erreur
+# self.strict = True -> typage obligatoire et cause une erreur si non respecté
+
+# TODO implémenter NOT_IN "not in", détecter tokens: NOT, IN qui se suivent
+
+# FIXME confusion entre [if/else] ternary et [if/else] block
+# some_value = 45 if x > 5 else 67
+# VS
+# some_value = 45
+# if x > 5 { ... } else 67
+
 class BaseParser:
 
     BINARY_PRECEDENCE = {
@@ -51,6 +63,7 @@ class BaseParser:
         TokenType.LTE: BinaryOperatorType.LTE,
         TokenType.GTE: BinaryOperatorType.GTE,
         TokenType.IN: BinaryOperatorType.IN,
+        TokenType.NOT: BinaryOperatorType.NOT_IN, # TODO: vérifier si c'est correct
     }
 
     UNARY_TOKEN_TO_ENUM = {
