@@ -7,11 +7,11 @@ class ExpressionParser(BaseParser):
 
     def parse_expression(self, min_prec: int = 0) -> ASTNode:
         """Pratt / precedence climbing expression parser that also handles ternary"""
-        self.skip_whitespace_and_comments()
+        self.skip_comments()
         left = self.parse_unary_or_primary()
 
         while True:
-            self.skip_whitespace_and_comments()
+            self.skip_comments()
             token = self.current_token
             if not token:
                 break

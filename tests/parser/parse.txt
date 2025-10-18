@@ -69,7 +69,7 @@ function f(a, b, c, x = 0) {
 
 // control flow
 
-if age > 18 'You are an adult'; // one line if statement requires a semicolon FIXME
+if age > 18 'You are an adult'
 
 if age > 18 {
     'You are an adult'
