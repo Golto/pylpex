@@ -75,7 +75,7 @@ class ExpressionParser(BaseParser):
                 if isinstance(node, IdentifierNode):
                     node = CallNode.from_token(token, function=node.name, arguments=args)
                 else:
-                    node = CallNode.from_token(token, function=repr(node), arguments=args)
+                    node = CallNode.from_token(token, function=node, arguments=args)
                 continue
 
             # attribute .name

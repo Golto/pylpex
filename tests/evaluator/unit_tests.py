@@ -1,6 +1,12 @@
 from typing import List, Optional, Tuple, Any
 
 TESTS = {
+    "comments": [
+        ("// comment", None),
+        ("/* comment */", None),
+        ("/* multi\nline\ncomment */", None),
+    ],
+
     "literals": [
         ("none", None),
         ("45", 45),
@@ -15,6 +21,21 @@ TESTS = {
     "indexing": [
         ("[1, 2, 3][1]", 2),
         ("{ 'a': 1, 'b': 2, 'c': 3 }['b']", 2),
+        ("name = 'John'; name[1]", "o"),
+        # errors list indexing
+        ("array = [1, 2, 3, 4, 5]; array[1.2]", "Error: Les indices de liste doivent être des entiers"),
+        ("array = [1, 2, 3, 4, 5]; array[15]", "Error: Index de liste hors limites"),
+        ("array = [1, 2, 3, 4, 5]; array[-1]", 5),
+        ("array = [1, 2, 3, 4, 5]; array[-6]", "Error: Index de liste hors limites"),
+        # errors dict indexing
+        ("mapping = { 'a': 1, 'b': 2, 'c': 3 }; mapping['d']", "Error: Clé 'd' introuvable dans le dictionnaire"),
+        # errors string indexing
+        ("name = 'John'; name[1.2]", "Error: Les indices de chaîne doivent être des entiers"),
+        ("name = 'John'; name[10]", "Error: Index de chaîne hors limites"),
+        ("name = 'John'; name[-1]", "n"),
+        ("name = 'John'; name[-5]", "Error: Index de chaîne hors limites"),
+        # no support
+        ("x = 1245; x[1]", "Error: ne supporte pas l'indexation"),
     ],
 
     "assignments": [
@@ -34,7 +55,12 @@ TESTS = {
 
     "assignments_indexing": [
         ("x = [1, 2, 3]; x[1] = 5; x", [1, 5, 3]),
-        # TODO add more cases
+        ("x = [1, 2, 3]; x[1] += 5; x", [1, 7, 3]),
+        ("x = [1, 2, 3]; x[1] -= 5; x", [1, -3, 3]),
+        ("x = [1, 2, 3]; x[1] *= 5; x", [1, 10, 3]),
+        ("x = [1, 2, 3]; x[1] /= 5; x", [1, 0.4, 3]),
+        ("x = [1, 2, 3]; x[1] **= 5; x", [1, 32, 3]),
+        ("x = [1, 2, 3]; x[2] %= 2; x", [1, 2, 1]),
     ],
 
     "binary_ops": [
@@ -70,17 +96,27 @@ TESTS = {
         ('"ok" if true else "no"', "ok"), 
     ],
 
-    # "postfix": [
-    #     ("some_list[2]", "indexing"),
-    #     ("person.name", "attribute"),
-    #     ("node.value.type", "chained_attribute"),
-    # ],
+    "control_flow": [
+        ("if true {'Vrai'}", "Vrai"),
+        ("if true {'Vrai'} else {'Faux'}", "Vrai"),
+        ("if false {'Vrai'} else {'Faux'}", "Faux"),
+        ("count = 0; while count < 10 { count += 1 } count", 10),
+        ("count = 0; while count < 10 { count += 1; if count == 5 { break } } count", 5),
+        ("count = 0; while count < 10 { count += 1; if count == 5 { count+= 10; continue } } count", 15),
+        ("sum = 0; for i in [1, 2, 3, 4, 5] { sum += i } sum", 15),
+        ("sum = 0; for i in [1, 2, 3, 4, 5] { sum += i; if i == 3 { break }} sum", 6),
+        ("sum = 0; for i in [1, 2, 3, 4, 5] { if i == 3 { continue } sum += i } sum", 12),
+    ],
 
-    # "complex": [
-    #     ("- human.friends[2].age", "unary+attr+index"),
-    #     ("x = [1, 2, 3]; x[1]", 2),
-    #     ("d = { 'a': 5 }; d['a']", 5),
-    # ],
+    "functions": [
+        ("def add(a, b) { return a + b } add(1, 2)", 3),
+        ("def add(a, b, c = 0) { return a + b + c } add(1, 2)", 3),
+        ("def add(a, b, c = 0) { return a + b + c } add(1, 2, 3)", 6),
+        ("def add(a, b) { return a + b } add_ = add; add_(1, 2)", 3),
+        ("def add(a, b) { return a + b } array = [add]; array[0](1, 2)", 3),
+        ("some_function = 78; some_function()", "Error: n'est pas appelable"),
+        ("sqrt(2)", 1.4142135623730951),
+    ]
 }
 
 def get_test_categories() -> List[str]:
@@ -90,7 +126,7 @@ def get_test_categories() -> List[str]:
 def get_test_cases(category: Optional[str] = None) -> Optional[List[Tuple[str, Any]]]:
     if category:
         return TESTS.get(category)
-    return TESTS
+    return [test for tests in TESTS.values() for test in tests]
 
 
 def run_tests(tests):

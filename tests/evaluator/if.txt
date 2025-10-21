@@ -1,0 +1,10 @@
+some_list = [1, 2, 3]
+result = none
+
+if 3 in some_list {
+    result = "3 est dans la liste"
+} else {
+    result = "3 n'est pas dans la liste"
+}
+
+result

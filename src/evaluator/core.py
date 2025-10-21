@@ -4,12 +4,57 @@ from src.parser.ASTNodes import *
 from .environment import Environment, RuntimeErrorEx
 from .visitor import ASTVisitor
 
+
+class BreakException(Exception):
+    """Exception pour gérer l'instruction break"""
+    pass
+
+
+class ContinueException(Exception):
+    """Exception pour gérer l'instruction continue"""
+    pass
+
+
+class ReturnException(Exception):
+    """Exception pour gérer l'instruction return"""
+    def __init__(self, value):
+        self.value = value
+
+
+class Function:
+    """Représente une fonction définie par l'utilisateur"""
+    def __init__(self, name: str, parameters: List[ParameterNode], body: List[ASTNode], closure: Environment):
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+        self.closure = closure
+    
+    def __repr__(self):
+        return f"<function {self.name}>"
+    
+
 class Evaluator(ASTVisitor):
     """Évalue l'AST dans un environnement donné"""
 
     def __init__(self, global_env: Optional[Environment] = None):
         self.global_env = global_env or Environment()
         self.current_env = self.global_env
+        self._setup_builtins()
+
+    def _setup_builtins(self):
+        """Définit les fonctions built-in"""
+
+        def builtin_print(*args):
+            print(*args)
+            return None
+        
+        def builtin_sqrt(x: float) -> float:
+            import math
+            return math.sqrt(x)
+        
+        # Enregistrement des builtins
+        self.global_env.define("print", builtin_print)
+        self.global_env.define("sqrt", builtin_sqrt)
 
     def evaluate(self, node: ASTNode) -> Any:
         """Point d'entrée principal pour évaluer un AST"""
@@ -65,11 +110,33 @@ class Evaluator(ASTVisitor):
         except RuntimeErrorEx:
             raise RuntimeErrorEx(f"Variable '{node.name}' non définie", node)
 
+    def _apply_compound_operator(self, operator: AssignmentOperatorType, current: Any, value: Any, node: ASTNode) -> Any:
+        """Applique un opérateur composé (+=, -=, etc.) et retourne la nouvelle valeur"""
+        try:
+            if operator == AssignmentOperatorType.PLUS:
+                return current + value
+            elif operator == AssignmentOperatorType.MINUS:
+                return current - value
+            elif operator == AssignmentOperatorType.MUL:
+                return current * value
+            elif operator == AssignmentOperatorType.DIV:
+                if value == 0:
+                    raise RuntimeErrorEx("Division par zéro", node)
+                return current / value
+            elif operator == AssignmentOperatorType.POWER:
+                return current ** value
+            elif operator == AssignmentOperatorType.MOD:
+                return current % value
+            else:
+                raise RuntimeErrorEx(f"Opérateur composé inconnu: {operator}", node)
+        except Exception as e:
+            raise RuntimeErrorEx(f"Erreur d'opération: {e}", node)
+        
     def visit_AssignmentNode(self, node: AssignmentNode) -> Any:
         value = self.visit(node.value)
 
         if isinstance(node.target, IdentifierNode):
-            # Assignation simple: x = 5
+            # Assignation à une variable: x = 5 ou x += 5
             if node.operator == AssignmentOperatorType.ASSIGN:
                 self.current_env.define(node.target.name, value)
             else:
@@ -79,34 +146,32 @@ class Evaluator(ASTVisitor):
                 except RuntimeErrorEx:
                     raise RuntimeErrorEx(f"Variable '{node.target.name}' non définie", node)
                 
-                if node.operator == AssignmentOperatorType.PLUS:
-                    value = current + value
-                elif node.operator == AssignmentOperatorType.MINUS:
-                    value = current - value
-                elif node.operator == AssignmentOperatorType.MUL:
-                    value = current * value
-                elif node.operator == AssignmentOperatorType.DIV:
-                    value = current / value
-                elif node.operator == AssignmentOperatorType.POWER:
-                    value = current ** value
-                elif node.operator == AssignmentOperatorType.MOD:
-                    value = current % value
-                
+                value = self._apply_compound_operator(node.operator, current, value, node)
                 self.current_env.assign(node.target.name, value)
-
+        
         elif isinstance(node.target, IndexNode):
-            # Assignation à un index: lst[0] = 5
+            # Assignation à un index: lst[0] = 5 ou lst[0] += 5
             collection = self.visit(node.target.collection)
             index = self.visit(node.target.index)
             
-            # TODO implémenter les opérateurs composés pour les index
-            if node.operator != AssignmentOperatorType.ASSIGN:
-                raise RuntimeErrorEx("Les opérateurs composés ne sont pas supportés pour l'indexation", node)
-            
-            try:
-                collection[index] = value
-            except (TypeError, KeyError, IndexError) as e:
-                raise RuntimeErrorEx(f"Erreur d'assignation: {e}", node)
+            if node.operator == AssignmentOperatorType.ASSIGN:
+                try:
+                    collection[index] = value
+                except (TypeError, KeyError, IndexError) as e:
+                    raise RuntimeErrorEx(f"Erreur d'assignation: {e}", node)
+            else:
+                # Opérateurs composés
+                try:
+                    current = collection[index]
+                except (TypeError, KeyError, IndexError) as e:
+                    raise RuntimeErrorEx(f"Erreur de lecture: {e}", node)
+                
+                value = self._apply_compound_operator(node.operator, current, value, node)
+                
+                try:
+                    collection[index] = value
+                except (TypeError, KeyError, IndexError) as e:
+                    raise RuntimeErrorEx(f"Erreur d'assignation: {e}", node)
             
         
         # TODO : Ajouter le cas pour les attributs (x.y = 5) 
@@ -199,12 +264,74 @@ class Evaluator(ASTVisitor):
     def visit_IndexNode(self, node: IndexNode) -> Any:
         collection = self.visit(node.collection)
         index = self.visit(node.index)
-        # TODO test de index NumberNode & index.type = NumberType.Integer
-        try:
+        
+        # Vérifications selon le type de collection
+        if isinstance(collection, list):
+            # Pour les listes : l'index doit être un entier
+            if not isinstance(index, int):
+                # FIXME Ne pas utiliser type(index).__name__ (c'est du type Python =( )
+                raise RuntimeErrorEx(
+                    f"Les indices de liste doivent être des entiers, pas '{type(index).__name__}'",
+                    node
+                )
+            
+            # Vérifier les bornes
+            if index < 0:
+                # Support des indices négatifs comme en Python
+                actual_index = len(collection) + index
+                if actual_index < 0:
+                    raise RuntimeErrorEx(
+                        f"Index de liste hors limites: {index} (longueur: {len(collection)})",
+                        node
+                    )
+                return collection[actual_index]
+            elif index >= len(collection):
+                raise RuntimeErrorEx(
+                    f"Index de liste hors limites: {index} (longueur: {len(collection)})",
+                    node
+                )
+            
             return collection[index]
-        except (TypeError, KeyError, IndexError) as e:
-            # FIXME Faire des erreurs customs, pas de Python
-            raise RuntimeErrorEx(f"Erreur d'indexation: {e}", node)
+        
+        elif isinstance(collection, dict):
+            # Pour les dictionnaires : vérifier que la clé existe
+            if index not in collection:
+                raise RuntimeErrorEx(
+                    f"Clé '{index}' introuvable dans le dictionnaire",
+                    node
+                )
+            return collection[index]
+        
+        elif isinstance(collection, str):
+            # Pour les chaînes : l'index doit être un entier
+            if not isinstance(index, int):
+                raise RuntimeErrorEx(
+                    f"Les indices de chaîne doivent être des entiers, pas '{type(index).__name__}'",
+                    node
+                )
+            
+            # Vérifier les bornes
+            if index < 0:
+                actual_index = len(collection) + index
+                if actual_index < 0:
+                    raise RuntimeErrorEx(
+                        f"Index de chaîne hors limites: {index} (longueur: {len(collection)})",
+                        node
+                    )
+                return collection[actual_index]
+            elif index >= len(collection):
+                raise RuntimeErrorEx(
+                    f"Index de chaîne hors limites: {index} (longueur: {len(collection)})",
+                    node
+                )
+            
+            return collection[index]
+        
+        else:
+            raise RuntimeErrorEx(
+                f"Le type '{type(collection).__name__}' ne supporte pas l'indexation",
+                node
+            )
     
     # FIXME: changer type(obj).__name__ pour quelque chose qui reste au sein du langage
     # TODO: implémneter la possibilité de donner des attributes à des objets
@@ -218,7 +345,99 @@ class Evaluator(ASTVisitor):
                 f"L'objet de type '{type(obj).__name__}' n'a pas d'attribut '{node.attribute}'",
                 node
             )
+        
+    def visit_CallNode(self, node: CallNode) -> Any:
+        # Résoudre la fonction
+        if isinstance(node.function, str):
+            try:
+                func = self.current_env.lookup(node.function)
+            except RuntimeErrorEx:
+                raise RuntimeErrorEx(f"Fonction '{node.function}' non définie", node)
+        else:
+            func = self.visit(node.function)
+        
+        # Évaluer les arguments
+        args = []
+        kwargs = {}
+        
+        for arg_node in node.arguments:
+            value = self.visit(arg_node.value)
+            if arg_node.name is None:
+                args.append(value)
+            else:
+                kwargs[arg_node.name] = value
+
+        # Appeler la fonction
+        try:
+            if callable(func) and not isinstance(func, Function):
+                # Fonction built-in ou Python native
+                return func(*args, **kwargs)
+            elif isinstance(func, Function):
+                # Fonction définie par l'utilisateur
+                return self._call_user_function(func, args, kwargs, node)
+            else:
+                raise RuntimeErrorEx(f"'{func}' n'est pas appelable", node)
+        except ReturnException as e:
+            return e.value
+        except (TypeError, RuntimeErrorEx) as e:
+            raise RuntimeErrorEx(f"Erreur d'appel de fonction: {e}", node)
     
+    def _call_user_function(self, func: Function, args: list, kwargs: dict, node: ASTNode) -> Any:
+        """Appelle une fonction définie par l'utilisateur"""
+        # Créer un nouvel environnement pour la fonction
+        func_env = Environment(parent=func.closure)
+        
+        # Lier les paramètres
+        positional_params = []
+        default_params = {}
+        
+        for param in func.parameters:
+            if param.default_value is None:
+                positional_params.append(param.name)
+            else:
+                default_params[param.name] = param.default_value
+        
+        # Assigner les arguments positionnels
+        if len(args) > len(func.parameters):
+            raise RuntimeErrorEx(
+                f"Trop d'arguments pour '{func.name}': attendu {len(func.parameters)}, reçu {len(args)}",
+                node
+            )
+        
+        for i, arg_value in enumerate(args):
+            param_name = func.parameters[i].name
+            func_env.define(param_name, arg_value)
+        
+        # Assigner les arguments nommés et valeurs par défaut
+        for param in func.parameters[len(args):]:
+            if param.name in kwargs:
+                func_env.define(param.name, kwargs[param.name])
+            elif param.default_value is not None:
+                # Évaluer la valeur par défaut dans l'environnement de la fonction
+                old_env = self.current_env
+                self.current_env = func_env
+                default_val = self.visit(param.default_value)
+                self.current_env = old_env
+                func_env.define(param.name, default_val)
+            else:
+                raise RuntimeErrorEx(
+                    f"Argument manquant pour le paramètre '{param.name}' de '{func.name}'",
+                    node
+                )
+        
+        # Exécuter le corps de la fonction
+        old_env = self.current_env
+        self.current_env = func_env
+        
+        try:
+            result = None
+            for statement in func.body:
+                result = self.visit(statement)
+            return result
+        except ReturnException as e:
+            return e.value
+        finally:
+            self.current_env = old_env
     # -------------------------------
     # Structures de contrôle
 
@@ -239,33 +458,64 @@ class Evaluator(ASTVisitor):
         
         return None
     
-    # TODO revoir à partir d'ici
-    # cf https://claude.ai/chat/c3c0e176-7157-425e-9a19-e0861076252f
+
+    def visit_BreakNode(self, node: BreakNode) -> None:
+        """Gère l'instruction break"""
+        raise BreakException()
+    
+
+    def visit_ContinueNode(self, node: ContinueNode) -> None:
+        """Gère l'instruction continue"""
+        raise ContinueException()
+    
+
+    def visit_WhileNode(self, node: WhileNode) -> None:
+        """Évalue une boucle while"""
+        try:
+            while self.visit(node.condition):
+                try:
+                    for statement in node.body:
+                        self.visit(statement)
+                except ContinueException:
+                    continue
+        except BreakException:
+            pass
+        
+        return None
+    
+    
+    def visit_ForNode(self, node: ForNode) -> None:
+        """Évalue une boucle for"""
+        iterable = self.visit(node.iterable)
+        
+        try:
+            iter(iterable)
+        except TypeError:
+            raise RuntimeErrorEx(f"L'objet de type '{type(iterable).__name__}' n'est pas itérable", node)
+        
+        try:
+            for value in iterable:
+                self.current_env.define(node.variable, value)
+                try:
+                    for statement in node.body:
+                        self.visit(statement)
+                except ContinueException:
+                    continue
+        except BreakException:
+            pass
+        
+        return None
+    
     # -------------------------------
     # Fonctions
 
-    # TODO
+    def visit_FunctionDefNode(self, node: FunctionDefNode) -> None:
+        """Définit une fonction"""
+        func = Function(node.name, node.parameters, node.body, self.current_env)
+        self.current_env.define(node.name, func)
+        return None
 
-    # -------------------------------
-    # Blocs et structures
-
-    def visit_block(self, stmts):
-        result = None
-        prev_env = self.current_env
-        self.current_env = Environment(parent=prev_env)
-        try:
-            for stmt in stmts:
-                result = self.visit(stmt)
-        finally:
-            self.current_env = prev_env
-        return result
-
-    # -------------------------------
-    # Appels de fonction
-
-    def visit_CallNode(self, node):
-        func = self.visit(node.function) if not isinstance(node.function, str) else self.current_env.lookup(node.function)
-        if not callable(func):
-            raise RuntimeErrorEx(f"'{node.function}' n’est pas une fonction", node)
-        args = [self.visit(arg.value) for arg in node.arguments]
-        return func(*args)
+    def visit_ReturnNode(self, node: ReturnNode) -> None:
+        """Gère l'instruction return"""
+        value = self.visit(node.value) if node.value else None
+        raise ReturnException(value)

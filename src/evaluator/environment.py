@@ -35,3 +35,6 @@ class Environment:
             return self.parent.lookup(name)
         else:
             raise RuntimeErrorEx(f"Variable '{name}' non définie")
+        
+    def __repr__(self):
+        return f"Environment({self.vars}, parent={self.parent})"

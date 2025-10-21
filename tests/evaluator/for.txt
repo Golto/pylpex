@@ -1,0 +1,9 @@
+
+sum = 0
+array = [5, 3, 6, 10]
+
+for n in array {
+    sum += n
+}
+
+[array, sum]

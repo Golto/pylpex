@@ -12,9 +12,6 @@ class StatementParser(BaseParser):
             return None
         
         # Manage keywords: function, if, while, for, return
-        print(
-            self.current_token
-        )
         if self.current_token.type == TokenType.FUNCTION:
             return self.parse_function_def()
         if self.current_token.type == TokenType.IF:

@@ -1,0 +1,13 @@
+size = 5
+some_list = [11, 12, 13, 14, 15]
+
+count = 1
+while count < size {
+    if count == 3 {
+        count += 1
+        continue
+    }
+    some_list[count - 1] += 10
+    count += 1
+}
+some_list
