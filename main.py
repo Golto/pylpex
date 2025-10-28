@@ -1,5 +1,5 @@
 import sys
-from src import Interpreter, __version__, __author__, __email__
+from src.pylpex import Interpreter, __version__, __author__, __email__
 
 # -----------------------------------------------------
 # Métadonnées du langage

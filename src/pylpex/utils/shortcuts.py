@@ -1,7 +1,7 @@
 from typing import List, Any
-from src.lexer import Lexer, Token
-from src.parser import Parser, ASTNode
-from src.evaluator import Evaluator
+from pylpex.lexer import Lexer, Token
+from pylpex.parser import Parser, ASTNode
+from pylpex.evaluator import Evaluator
 
 def tokenize(code: str) -> List[Token]:
     lexer = Lexer(code)

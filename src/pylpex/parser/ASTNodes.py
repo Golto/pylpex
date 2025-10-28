@@ -3,7 +3,7 @@ from typing import List, Optional, Union, Any
 from enum import Enum
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from src.lexer import Token
+from pylpex.lexer import Token
 
 # -----------------------------------------------------
 # Abstract base class

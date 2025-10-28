@@ -1,5 +1,5 @@
 
-from src.parser.ASTNodes import ASTNode
+from pylpex.parser.ASTNodes import ASTNode
 
 class ASTVisitor:
     def visit(self, node: ASTNode):

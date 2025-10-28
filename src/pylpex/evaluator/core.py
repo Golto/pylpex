@@ -1,6 +1,6 @@
 
 from typing import Optional
-from src.parser.ASTNodes import *
+from pylpex.parser.ASTNodes import *
 from .environment import Environment, RuntimeErrorEx
 from .visitor import ASTVisitor
 

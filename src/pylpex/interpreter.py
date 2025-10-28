@@ -1,7 +1,7 @@
 from typing import List, Optional, Any
-from src.lexer import Lexer, Token
-from src.parser import Parser, ASTNode
-from src.evaluator import Evaluator
+from .lexer import Lexer, Token
+from .parser import Parser, ASTNode
+from .evaluator import Evaluator
 
 class Interpreter:
     """

@@ -1,6 +1,6 @@
 
 from typing import Optional
-from src.parser.ASTNodes import ASTNode
+from pylpex.parser.ASTNodes import ASTNode
 
 class RuntimeErrorEx(Exception):
     def __init__(self, message: str, node: Optional[ASTNode] = None):

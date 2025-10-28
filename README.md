@@ -1,3 +1,12 @@
+<!-- 
+TODO
+* Passage en package
+    - renommer src en pylpex
+    - ajouter une section pour le test en local avec `uv pip install -e .`
+    - ajouter une section pour utilisation avec pip : `pip install pylpex` ou `uv add pylpex`
+-->
+
+
 <div align="center">
   <img src="assets/banner.svg" alt="Pylpex Banner">
   

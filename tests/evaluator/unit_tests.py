@@ -131,7 +131,7 @@ def get_test_cases(category: Optional[str] = None) -> Optional[List[Tuple[str, A
 
 
 def run_tests(tests):
-    from src.utils import evaluate
+    from src.pylpex.utils import evaluate
 
     total = len(tests)
     passed = 0

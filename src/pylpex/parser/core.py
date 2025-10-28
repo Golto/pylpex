@@ -1,4 +1,4 @@
-from src.lexer import TokenType
+from pylpex.lexer import TokenType
 from .ASTNodes import ProgramNode
 from .expressions import ExpressionParser
 from .statements import StatementParser

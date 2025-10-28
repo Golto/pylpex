@@ -75,9 +75,9 @@ def get_test_cases():
     return TESTS
 
 def run_tests(tests):
-    from src.lexer import Lexer
-    from src.parser import Parser
-    from src.utils import format_ast
+    from src.pylpex.lexer import Lexer
+    from src.pylpex.parser import Parser
+    from src.pylpex.utils import format_ast
     for parse_method, lines in tests:
         print(f"  Testing {parse_method.upper()}")
         print("=====================================")

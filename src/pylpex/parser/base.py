@@ -1,5 +1,5 @@
 # base.py
-from src.lexer import TokenType, Token
+from pylpex.lexer import TokenType, Token
 from .ASTNodes import *
 from typing import List, Optional
 
