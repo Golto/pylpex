@@ -129,25 +129,57 @@ def get_test_cases(category: Optional[str] = None) -> Optional[List[Tuple[str, A
     return [test for tests in TESTS.values() for test in tests]
 
 
+
 def run_tests(tests):
     from src.utils import evaluate
-    for expr, expected in tests:
+
+    total = len(tests)
+    passed = 0
+    failed_tests = []
+
+    for i, (expr, expected) in enumerate(tests, 1):
         print("------------------------------------------------")
-        print(expr)
+        print(f"[{i}/{total}] {expr}")
         try:
             result = evaluate(expr)
             print("\tResult:   ", result)
             print("\tExpected: ", expected)
+
             if isinstance(expected, str) and expected.startswith("Error:"):
                 print("\tCorrect:  🟥 (aucune erreur levée)")
+                failed_tests.append((expr, expected, f"Aucune erreur levée (résultat={result})"))
             else:
-                print("\tCorrect:  ✅" if result == expected else "🟥")
+                if result == expected:
+                    print("\tCorrect:  ✅")
+                    passed += 1
+                else:
+                    print("\tCorrect:  🟥")
+                    failed_tests.append((expr, expected, result))
         except Exception as e:
             error_message = str(e)
             print("\tError:    ", error_message)
             print("\tExpected: ", expected)
+
             if isinstance(expected, str) and expected.startswith("Error:"):
                 expected_error_msg = expected.split("Error:")[1].strip()
-                print("\tCorrect:  ✅" if expected_error_msg in error_message else "🟥")
+                if expected_error_msg in error_message:
+                    print("\tCorrect:  ✅")
+                    passed += 1
+                else:
+                    print("\tCorrect:  🟥 (mauvais message d’erreur)")
+                    failed_tests.append((expr, expected, f"Erreur différente: {error_message}"))
             else:
                 print("\tCorrect:  🟥 (erreur inattendue)")
+                failed_tests.append((expr, expected, f"Erreur inattendue: {error_message}"))
+
+    # Résumé
+    print("\n================================================")
+    print(f"Résultats : {passed}/{total} tests réussis ✅")
+    if failed_tests:
+        print("------------------------------------------------")
+        print("Tests échoués :")
+        for expr, expected, got in failed_tests:
+            print(f"❌ {expr}")
+            print(f"   Attendu : {expected}")
+            print(f"   Obtenu  : {got}")
+    print("================================================\n")
