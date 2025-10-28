@@ -1,0 +1,34 @@
+<svg width="900" height="210" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="900" height="210" rx="12" fill="#faf9f9"/>
+  
+  <!-- Shadow effect -->
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Title -->
+  <text x="450" y="80" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="48" font-weight="700" fill="#0f172a" text-anchor="middle" letter-spacing="-1">
+    🌀 Pylpex
+  </text>
+  
+  <!-- Version -->
+  <text x="450" y="115" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" fill="#475569" text-anchor="middle">
+    Version <tspan font-weight="600">1.0.0</tspan>
+  </text>
+  
+  <!-- Description -->
+  <text x="450" y="155" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" fill="#64748b" text-anchor="middle">
+    Langage de programmation expérimental inspiré de Python.
+  </text>
+</svg>

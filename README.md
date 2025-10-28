@@ -1,75 +1,14 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Pylpex Banner</title>
-    <style>
-        body {
-            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-        }
-        .banner {
-            background: #faf9f9;
-            padding: 40px 20px;
-            border-radius: 12px;
-            box-shadow: 0px 6px 18px rgba(255, 249, 249, 0.4);
-            max-width: 900px;
-            width: 100%;
-            text-align: center;
-        }
-        .banner h1 {
-            margin: 0;
-            font-size: 3rem;
-            line-height: 1.05;
-            letter-spacing: -0.02em;
-            color: #0f172a;
-        }
-        .banner .version {
-            margin-top: 8px;
-            font-size: 1rem;
-            color: #475569;
-        }
-        .badges {
-            margin-top: 14px;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .badges img {
-            height: 22px;
-        }
-        .badges a {
-            text-decoration: none;
-            color: #0ea5a4;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        .banner p {
-            margin: 18px auto 0;
-            color: #64748b;
-            max-width: 70%;
-        }
-    </style>
-</head>
-<body>
-    <div class="banner">
-        <h1>🌀 Pylpex</h1>
-        <div class="version">Version <strong>1.0.0</strong></div>
-        <div class="badges">
-            <img src="https://img.shields.io/badge/Python-3.13+-blue.svg" alt="Python Version">
-            <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
-            <a href="https://github.com/votre-username/pylpex">GitHub /pylpex</a>
-        </div>
-        <p>Langage de programmation expérimental inspiré de Python.</p>
-    </div>
-    <br>
-</body>
-</html>
+<div align="center">
+  <img src="assets/banner.svg" alt="Pylpex Banner">
+  
+  <div>
+    <img src="https://img.shields.io/badge/Python-3.13+-blue.svg" alt="Python Version">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+    <a href="https://github.com/Golto/pylpex">
+      <img src="https://img.shields.io/badge/GitHub-pylpex-0ea5a4.svg" alt="GitHub">
+    </a>
+  </div>
+</div>
 
 # Contexte
 
