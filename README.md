@@ -21,18 +21,19 @@ TODO
 
 # Contexte
 
-> Pylpex est un langage de programmation expérimental conçu comme un langage "jouet" pour explorer la conception d'un interpréteur de code.
-Il reprend la simplicité syntaxique de Python, tout en introduisant une approche à base d’accolades {} pour structurer le code — à la manière du C ou du JavaScript et en remplacement de l’indentation de Python.
+> **Pylpex** est un langage de programmation expérimental conçu pour explorer la création d’un interpréteur de code.  
+> Inspiré de Python pour sa simplicité syntaxique, il remplace entre autres l’indentation par des **accolades `{}`** à la manière du C ou du JavaScript pour structurer le code.
+> Ce projet a une **visée pédagogique** : comprendre les étapes fondamentales de la conception d’un langage.
 
-Le projet à une visée pédagogique et ne cherche pas à une utilisation concrète. Il comprend les étapes clés de la création d’un langage de programmation :
+Il comprend les étapes clés de la création d’un langage de programmation :
 
-- la construction d’un lexer et d’un parser,
+- la construction d’un **lexer** et d’un **parser**,
 
-- la représentation d’un arbre syntaxique (AST),
+- la représentation d’un **arbre syntaxique** (**AST**),
 
-- la gestion d’un environnement d’exécution,
+- la gestion d’un **environnement d’exécution**,
 
-- et la conception d’un moteur d’interprétation complet.
+- et la conception d’un **moteur d’interprétation** complet.
 
 ## 📚 Table des matières
 
@@ -63,16 +64,30 @@ Pylpex supporte déjà la majorité des constructions d’un langage moderne :
 
 ### Prérequis
 
-* **Python 3.13+** (recommandé)
+* **Python 3.13+**
 * [**uv**](https://docs.astral.sh/uv/) – un gestionnaire rapide pour Python, compatible avec `pyproject.toml`.
 
-### Cloner le dépôt
+
+### 1. Depuis PyPI
+
+```bash
+pip install pylpex
+# ou
+uv add pylpex
+```
+
+### 2. En développement local
+
+Pour tester le package depuis le dépôt source :
 
 ```bash
 git clone https://github.com/Golto/pylpex.git
 cd pylpex
+uv pip install -e .
 ```
 
+Cela installe le package en mode *editable* (`-e`) afin de pouvoir le modifier sans réinstallation.
+<!-- 
 ### Créer l’environnement et installer les dépendances
 
 Si vous n’avez pas encore installé **uv** :
@@ -88,6 +103,9 @@ uv sync
 ```
 
 Cela crée un environnement virtuel local et installe automatiquement les dépendances définies dans `pyproject.toml`.
+ -->
+
+---
 
 ### Lancer le projet
 
@@ -122,6 +140,10 @@ Pylpex peut s’utiliser de deux manières :
 ```bash
 python main.py
 ```
+Si vous êtes à la racine du projet, sinon vous pouvez aussi utiliser :
+```bash
+uv run pylpex
+```
 
 Vous verrez apparaître :
 
@@ -154,7 +176,7 @@ Pylpex peut être utilisé comme **librairie Python**.
 Il expose une API simple pour **tokeniser**, **parser** et **évaluer** du code Pylpex :
 
 ```python
-from src import Interpreter
+from pylpex import Interpreter
 
 # Crée un interpréteur avec environnement persistant
 interpreter = Interpreter()
@@ -167,12 +189,13 @@ print(add(5, 3))
 """
 
 result = interpreter.evaluate(code)
+print(result)  # 8
 ```
 
 #### Évaluer une expression simple
 
 ```python
-from src.utils import evaluate
+from pylpex.utils import evaluate
 
 result = evaluate("2 + 2")
 print(result)  # 4
@@ -181,7 +204,7 @@ print(result)  # 4
 #### Parser ou tokenizer seulement
 
 ```python
-from src.utils import parse, tokenize
+from pylpex.utils import parse, tokenize
 
 ast = parse("x = 5")
 tokens = tokenize("x = 5")
@@ -193,7 +216,7 @@ print(tokens)
 #### Conserver l’état entre plusieurs exécutions
 
 ```python
-from src import Interpreter
+from pylpex import Interpreter
 
 interpreter = Interpreter()
 interpreter.evaluate("x = 10")
@@ -205,7 +228,7 @@ print(interpreter.get_variable("y"))  # 15
 #### Exécuter un fichier
 
 ```python
-from src import Interpreter
+from pylpex import Interpreter
 
 interpreter = Interpreter()
 
