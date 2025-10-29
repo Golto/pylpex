@@ -50,6 +50,7 @@ class TokenType(Enum):
     SEMICOLON = "SEMICOLON"
     COLON = "COLON"
     DOT = "DOT"
+    ARROW = "ARROW"
     # Keywords
     FUNCTION = "FUNCTION"
     RETURN = "RETURN"

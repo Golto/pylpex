@@ -1,7 +1,7 @@
 from pylpex.lexer import TokenType
+from pylpex.typesystem import TypeInfo, BaseType
 from .ASTNodes import *
 from .base import BaseParser, SyntaxicalError
-
 
 class ExpressionParser(BaseParser):
 
@@ -150,7 +150,15 @@ class ExpressionParser(BaseParser):
         if token.type == TokenType.IDENTIFIER:
             name = token.value
             self.advance()
-            return IdentifierNode.from_token(token, name=name)
+            type_annotation = None
+
+            # Manage type annotations
+            if self.current_token and self.current_token.type == TokenType.COLON:
+                self.advance()
+                self.skip_whitespace_and_comments()
+                type_annotation = self.parse_type()
+
+            return IdentifierNode.from_token(token, name=name, _type_annotation=type_annotation)
         
         # Parentheses (group)
         if token.type == TokenType.LPAREN:
@@ -170,4 +178,43 @@ class ExpressionParser(BaseParser):
             return self.parse_dictionary()
         
         raise SyntaxicalError(f"Expression inattendue: {token.type.value}", token)
+    
+    def parse_type(self):
+        """Parse une annotation de type, ex: int, list[int], dict[string, any]"""
+        if not self.current_token or self.current_token.type != TokenType.IDENTIFIER:
+            raise SyntaxicalError("Nom de type attendu", self.current_token)
+
+        base_name = self.current_token.value
+        self.advance()
+
+        # conversion to BaseType
+        try:
+            base_type = BaseType(base_name)
+        except ValueError:
+            base_type = BaseType.ANY  # fallback for unknown types
+
+        self.skip_whitespace_and_comments()
+        subtypes = []
+
+        # --- subtypes: list[int], dict[string, int], etc. ---
+        if self.current_token and self.current_token.type == TokenType.LBRACKET:
+            self.advance()  # [
+            self.skip_whitespace_and_comments()
+
+            while True:
+                subtype = self.parse_type()  # recursive
+                subtypes.append(subtype)
+                self.skip_whitespace_and_comments()
+
+                if self.current_token and self.current_token.type == TokenType.COMMA:
+                    self.advance()
+                    self.skip_whitespace_and_comments()
+                    continue
+                break
+
+            self.expect(TokenType.RBRACKET)
+
+        return TypeInfo(base_type, subtypes if subtypes else None)
+
+
     

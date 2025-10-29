@@ -5,8 +5,10 @@ import re
 class ASTPrettyPrinter:
     """Formatte les AST de manière lisible avec indentation"""
     
-    def __init__(self, indent_size: int = 4):
+    def __init__(self, indent_size: int = 4, show_position: bool = False, show_private: bool = False):
         self.indent_size = indent_size
+        self.show_position = show_position
+        self.show_private = show_private
     
     def format(self, node: Any) -> str:
         """Point d'entrée principal pour formatter un node"""
@@ -80,6 +82,20 @@ class ASTPrettyPrinter:
         
         return content, i - 1
     
+    def _should_filter_argument(self, arg: str) -> bool:
+        """Détermine si un argument doit être filtré"""
+        arg_stripped = arg.strip()
+        
+        # Filtre position= si show_position est False
+        if not self.show_position and arg_stripped.startswith('position='):
+            return True
+        
+        # Filtre les arguments commençant par _ si show_private est False
+        if not self.show_private and re.match(r'^_\w+\s*=', arg_stripped):
+            return True
+        
+        return False
+    
     def _format_content(self, content: str, depth: int) -> list[str]:
         """Formatte le contenu d'une parenthèse/crochet en séparant par virgules"""
         if not content.strip():
@@ -87,16 +103,27 @@ class ASTPrettyPrinter:
         
         # Sépare par virgules en tenant compte de l'imbrication
         parts = self._split_by_comma(content)
+        
+        # Filtre les arguments selon les paramètres
+        filtered_parts = []
+        for part in parts:
+            if not self._should_filter_argument(part):
+                filtered_parts.append(part)
+        
+        # Si tous les arguments ont été filtrés, retourne une liste vide
+        if not filtered_parts:
+            return []
+        
         result = []
         indent = " " * (depth * self.indent_size)
         
-        for i, part in enumerate(parts):
+        for i, part in enumerate(filtered_parts):
             part = part.strip()
             if not part:
                 continue
             
             # Ajoute une virgule sauf pour le dernier élément
-            suffix = "," if i < len(parts) - 1 else ""
+            suffix = "," if i < len(filtered_parts) - 1 else ""
             
             # Si la partie contient des parenthèses/crochets, formatte récursivement
             if '(' in part or '[' in part:
@@ -144,11 +171,10 @@ class ASTPrettyPrinter:
 
 
 # Fonction helper pour usage simple
-def format_ast(node: Any, indent_size: int = 4) -> str:
+def format_ast(node: Any, indent_size: int = 4, show_position: bool = False, show_private: bool = False) -> str:
     """Formatte un node AST de manière lisible"""
-    printer = ASTPrettyPrinter(indent_size)
+    printer = ASTPrettyPrinter(indent_size, show_position, show_private)
     return printer.format(node)
-
 
 # === TESTS ===
 if __name__ == "__main__":

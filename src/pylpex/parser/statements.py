@@ -46,7 +46,8 @@ class StatementParser(BaseParser):
                 token=op_token,
                 target=expr,
                 operator=op_type,
-                value=value
+                value=value,
+                type_annotation=expr.get_type() if hasattr(expr, 'get_type') else None # retrieve the type of the target (from IdentifierNode)
             )
 
             # Optional: Semicolon (for affectations)

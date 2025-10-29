@@ -4,6 +4,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from pylpex.lexer import Token
+from pylpex.typesystem import TypeInfo
 
 # -----------------------------------------------------
 # Abstract base class
@@ -102,6 +103,10 @@ class DictionaryNode(ASTNode):
 class IdentifierNode(ASTNode):
     """Nœud pour les identifiants (variables)"""
     name: str
+    _type_annotation: Optional[TypeInfo] = None # for type inference
+
+    def get_type(self) -> Optional[TypeInfo]:
+        return self._type_annotation
 
 
 class AssignmentOperatorType(TypeEnum):
@@ -119,6 +124,7 @@ class AssignmentNode(ASTNode):
     target: ASTNode  # nom de la variable
     operator: AssignmentOperatorType  # '=', '+=', '-=', etc.
     value: ASTNode
+    type_annotation: Optional[TypeInfo] = None
 
 # -----------------------------------------------------
 # Operations
@@ -208,6 +214,7 @@ class ParameterNode(ASTNode):
     """Paramètre de fonction, possiblement avec valeur par défaut"""
     name: str
     default_value: Optional[ASTNode] = None
+    type_annotation: Optional[TypeInfo] = None
 
 @dataclass
 class FunctionDefNode(ASTNode):
@@ -215,6 +222,8 @@ class FunctionDefNode(ASTNode):
     name: str
     parameters: List[ParameterNode]
     body: List[ASTNode]
+    return_type: Optional[TypeInfo] = None
+    type_annotation: Optional[TypeInfo] = None
 
 @dataclass
 class ReturnNode(ASTNode):

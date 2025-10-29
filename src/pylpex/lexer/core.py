@@ -286,6 +286,12 @@ class Lexer:
                 ':': TokenType.COLON,
                 '.': TokenType.DOT,
             }
+
+            # Flèche de typage ->
+            if char == '-' and self.peek() == '>':
+                self.advance()
+                self.advance()
+                return Token(TokenType.ARROW, '->', line, col)
             
             if char in single_char_tokens:
                 token_type = single_char_tokens[char]

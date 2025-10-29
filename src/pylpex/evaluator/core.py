@@ -1,19 +1,18 @@
 
 from typing import Optional
 from pylpex.parser.ASTNodes import *
+from pylpex.typesystem import TypeInfo, BaseType
 from .environment import Environment
 from .exception import ExecutionError
 from .visitor import ASTVisitor
+# mixins
+from .builtin import BuiltinMixin, BuiltinFunction
+from .expressions import ExpressionsMixin
+from .variables import VariablesMixin
+from .statements import StatementsMixin
+from .operators import OperatorsMixin
 
 
-class BreakException(Exception):
-    """Exception pour gérer l'instruction break"""
-    pass
-
-
-class ContinueException(Exception):
-    """Exception pour gérer l'instruction continue"""
-    pass
 
 
 class ReturnException(Exception):
@@ -24,38 +23,38 @@ class ReturnException(Exception):
 
 class Function:
     """Représente une fonction définie par l'utilisateur"""
-    def __init__(self, name: str, parameters: List[ParameterNode], body: List[ASTNode], closure: Environment):
+    def __init__(self, name: str, parameters: List[ParameterNode], body: List[ASTNode], closure: Environment, return_type: Optional[TypeInfo] = None):
         self.name = name
         self.parameters = parameters
         self.body = body
         self.closure = closure
+        self.return_type = return_type
     
     def __repr__(self):
         return f"<function {self.name}>"
-    
 
-class Evaluator(ASTVisitor):
+mixins = [
+    BuiltinMixin,
+    ExpressionsMixin,
+    VariablesMixin,
+    StatementsMixin,
+    OperatorsMixin
+]
+
+# TODO faire un mode strict pour les types
+# self.strict_typing = False -> typage facultatif et ne cause pas d'erreur
+# self.strict_typing = True -> typage obligatoire et cause une erreur si non respecté
+# cf https://chatgpt.com/g/g-p-68f0432b8c7081918f5e46292e69206b/c/69019e0a-55ec-832b-9cef-8b8f4ef0d9c1
+
+class Evaluator(ASTVisitor, *mixins):
     """Évalue l'AST dans un environnement donné"""
 
-    def __init__(self, global_env: Optional[Environment] = None):
+
+    def __init__(self, global_env: Optional[Environment] = None, strict_typing = False):
         self.global_env = global_env or Environment()
         self.current_env = self.global_env
+        self.strict_typing = strict_typing
         self._setup_builtins()
-
-    def _setup_builtins(self):
-        """Définit les fonctions built-in"""
-
-        def builtin_print(*args):
-            print(*args)
-            return None
-        
-        def builtin_sqrt(x: float) -> float:
-            import math
-            return math.sqrt(x)
-        
-        # Enregistrement des builtins
-        self.global_env.define("print", builtin_print)
-        self.global_env.define("sqrt", builtin_sqrt)
 
     def evaluate(self, node: ASTNode) -> Any:
         """Point d'entrée principal pour évaluer un AST"""
@@ -70,194 +69,61 @@ class Evaluator(ASTVisitor):
         for statement in node.statements:
             result = self.visit(statement)
         return result
-
-    # -------------------------------
-    # Literals
-
-    def visit_NoneNode(self, node: NoneNode) -> None:
-        return None
-
-    def visit_NumberNode(self, node: NumberNode) -> Union[int, float]:
-        return node.value
-
-    def visit_StringNode(self, node: StringNode) -> str:
-        return node.value
-
-    def visit_BooleanNode(self, node: BooleanNode) -> bool:
-        return node.value
-
-    def visit_ListNode(self, node: ListNode) -> List[Any]:
-        return [self.visit(elem) for elem in node.elements]
-    
-    def visit_DictionaryNode(self, node: DictionaryNode) -> dict:
-        result = {}
-        for key_node, value_node in node.pairs:
-            if isinstance(key_node, StringNode):
-                key = key_node.value
-                value = self.visit(value_node)
-                result[key] = value
-            else:
-                # key = self.visit(key_node) # TODO faire une erreur propre
-                raise ExecutionError(f"Clé de dictionnaire non hashable: {type(key).__name__}", node)
-            
-        return result
-
-    # -------------------------------
-    # Variables
-
-    def visit_IdentifierNode(self, node: IdentifierNode) -> Any:
-        try:
-            return self.current_env.lookup(node.name)
-        except ExecutionError:
-            raise ExecutionError(f"Variable '{node.name}' non définie", node)
-
-    def _apply_compound_operator(self, operator: AssignmentOperatorType, current: Any, value: Any, node: ASTNode) -> Any:
-        """Applique un opérateur composé (+=, -=, etc.) et retourne la nouvelle valeur"""
-        try:
-            if operator == AssignmentOperatorType.PLUS:
-                return current + value
-            elif operator == AssignmentOperatorType.MINUS:
-                return current - value
-            elif operator == AssignmentOperatorType.MUL:
-                return current * value
-            elif operator == AssignmentOperatorType.DIV:
-                if value == 0:
-                    raise ExecutionError("Division par zéro", node)
-                return current / value
-            elif operator == AssignmentOperatorType.POWER:
-                return current ** value
-            elif operator == AssignmentOperatorType.MOD:
-                return current % value
-            else:
-                raise ExecutionError(f"Opérateur composé inconnu: {operator}", node)
-        except Exception as e:
-            raise ExecutionError(f"Erreur d'opération: {e}", node)
-        
-    def visit_AssignmentNode(self, node: AssignmentNode) -> Any:
-        value = self.visit(node.value)
-
-        if isinstance(node.target, IdentifierNode):
-            # Assignation à une variable: x = 5 ou x += 5
-            if node.operator == AssignmentOperatorType.ASSIGN:
-                self.current_env.define(node.target.name, value)
-            else:
-                # Opérateurs composés: +=, -=, etc.
-                try:
-                    current = self.current_env.lookup(node.target.name)
-                except ExecutionError:
-                    raise ExecutionError(f"Variable '{node.target.name}' non définie", node)
-                
-                value = self._apply_compound_operator(node.operator, current, value, node)
-                self.current_env.assign(node.target.name, value)
-        
-        elif isinstance(node.target, IndexNode):
-            # Assignation à un index: lst[0] = 5 ou lst[0] += 5
-            collection = self.visit(node.target.collection)
-            index = self.visit(node.target.index)
-            
-            if node.operator == AssignmentOperatorType.ASSIGN:
-                try:
-                    collection[index] = value
-                except (TypeError, KeyError, IndexError) as e:
-                    raise ExecutionError(f"Erreur d'assignation: {e}", node)
-            else:
-                # Opérateurs composés
-                try:
-                    current = collection[index]
-                except (TypeError, KeyError, IndexError) as e:
-                    raise ExecutionError(f"Erreur de lecture: {e}", node)
-                
-                value = self._apply_compound_operator(node.operator, current, value, node)
-                
-                try:
-                    collection[index] = value
-                except (TypeError, KeyError, IndexError) as e:
-                    raise ExecutionError(f"Erreur d'assignation: {e}", node)
-            
-        
-        # TODO : Ajouter le cas pour les attributs (x.y = 5) 
-        else:
-            raise ExecutionError(f"Target d'assignation invalide: {type(node.target).__name__}", node)
-        
-        return value
-
-    # -------------------------------
-    # Opérateurs binaires
-
-    def visit_BinaryOpNode(self, node: BinaryOpNode) -> Any:
-        left = self.visit(node.left)
-        
-        # Court-circuit pour 'and' et 'or'
-        if node.operator == BinaryOperatorType.AND:
-            if not left:
-                return left
-            return self.visit(node.right)
-        elif node.operator == BinaryOperatorType.OR:
-            if left:
-                return left
-            return self.visit(node.right)
-        
-        right = self.visit(node.right)
-        
-        try:
-            if node.operator == BinaryOperatorType.PLUS:
-                return left + right
-            elif node.operator == BinaryOperatorType.MINUS:
-                return left - right
-            elif node.operator == BinaryOperatorType.MUL:
-                return left * right
-            elif node.operator == BinaryOperatorType.DIV:
-                if right == 0:
-                    raise ExecutionError("Division par zéro", node) # FIXME double erreur : ExecutionError: Erreur à la ligne 2, colonne 3: Erreur d'opération: Erreur à la ligne 2, colonne 3: Division par zéro
-                return left / right
-            elif node.operator == BinaryOperatorType.POWER:
-                return left ** right
-            elif node.operator == BinaryOperatorType.MOD:
-                return left % right
-            elif node.operator == BinaryOperatorType.EQ:
-                return left == right
-            elif node.operator == BinaryOperatorType.NEQ:
-                return left != right
-            elif node.operator == BinaryOperatorType.LT:
-                return left < right
-            elif node.operator == BinaryOperatorType.GT:
-                return left > right
-            elif node.operator == BinaryOperatorType.LTE:
-                return left <= right
-            elif node.operator == BinaryOperatorType.GTE:
-                return left >= right
-            elif node.operator == BinaryOperatorType.IN:
-                return left in right
-            elif node.operator == BinaryOperatorType.NOT_IN:
-                return left not in right
-        except Exception as e:
-            raise ExecutionError(f"Erreur d'opération: {e}", node)
-
-    # -------------------------------
-    # Opérateurs unaires
-
-    def visit_UnaryOpNode(self, node: UnaryOpNode) -> Any:
-        operand = self.visit(node.operand)
-        
-        try:
-            if node.operator == UnaryOperatorType.POSITIVE:
-                return +operand
-            elif node.operator == UnaryOperatorType.NEGATIVE:
-                return -operand
-            elif node.operator == UnaryOperatorType.NOT:
-                return not operand
-        except Exception as e:
-            raise ExecutionError(f"Erreur d'opération unaire: {e}", node)
     
     # -------------------------------
-    # Opérateur ternaire
+    # Type annotations
+    
+    def _infer_type(self, value) -> TypeInfo:
+        """Infère récursivement le type d'une valeur Python en TypeInfo"""
 
-    def visit_TernaryNode(self, node: TernaryNode) -> Any:
-        condition = self.visit(node.condition)
-        if condition:
-            return self.visit(node.true_expr)
-        else:
-            return self.visit(node.false_expr)
+        if value is None:
+            return TypeInfo(BaseType.NONE)
+
+        if isinstance(value, bool):
+            return TypeInfo(BaseType.BOOLEAN)
+
+        if isinstance(value, int):
+            return TypeInfo(BaseType.INTEGER)
+
+        if isinstance(value, float):
+            return TypeInfo(BaseType.FLOAT)
+
+        if isinstance(value, str):
+            return TypeInfo(BaseType.STRING)
+        
+        if isinstance(value, list):
+            # Inférer le type des éléments
+            if not value:
+                subtype = TypeInfo(BaseType.ANY)
+            else:
+                subtypes = [self._infer_type(v) for v in value]
+                subtype = TypeInfo.union(*subtypes)
+            return TypeInfo(BaseType.LIST, subtype)
+        
+        if isinstance(value, dict):
+            # Inférer types des clés et valeurs
+            if not value:
+                key_t = TypeInfo(BaseType.ANY)
+                val_t = TypeInfo(BaseType.ANY)
+            else:
+                key_t = TypeInfo.union(*[self._infer_type(k) for k in value.keys()])
+                val_t = TypeInfo.union(*[self._infer_type(v) for v in value.values()])
+            return TypeInfo(BaseType.DICTIONARY, [key_t, val_t])
+        
+        if isinstance(value, Function):
+            # Fonction définie par l'utilisateur
+            arg_types = [p.type_annotation or TypeInfo(BaseType.ANY) for p in value.parameters]
+            ret_type = value.return_type or TypeInfo(BaseType.ANY)
+            return TypeInfo.callable(arg_types, ret_type)
+        
+        if isinstance(value, BuiltinFunction):
+            # Fonction native
+            arg_types = value.arg_types
+            ret_type = value.return_type
+            return TypeInfo.callable(arg_types, ret_type)
+
+        return TypeInfo(BaseType.ANY)
+    
 
     # -------------------------------
     # Expressions
@@ -270,9 +136,9 @@ class Evaluator(ASTVisitor):
         if isinstance(collection, list):
             # Pour les listes : l'index doit être un entier
             if not isinstance(index, int):
-                # FIXME Ne pas utiliser type(index).__name__ (c'est du type Python =( )
+                index_type = self._infer_type(index)
                 raise ExecutionError(
-                    f"Les indices de liste doivent être des entiers, pas '{type(index).__name__}'",
+                    f"Les indices de liste doivent être des entiers, pas '{index_type}'",
                     node
                 )
             
@@ -306,8 +172,9 @@ class Evaluator(ASTVisitor):
         elif isinstance(collection, str):
             # Pour les chaînes : l'index doit être un entier
             if not isinstance(index, int):
+                index_type = self._infer_type(index)
                 raise ExecutionError(
-                    f"Les indices de chaîne doivent être des entiers, pas '{type(index).__name__}'",
+                    f"Les indices de chaîne doivent être des entiers, pas '{index_type}'",
                     node
                 )
             
@@ -347,6 +214,9 @@ class Evaluator(ASTVisitor):
                 node
             )
         
+    # -------------------------------
+    # Fonctions
+        
     def visit_CallNode(self, node: CallNode) -> Any:
         # Résoudre la fonction
         if isinstance(node.function, str):
@@ -370,9 +240,9 @@ class Evaluator(ASTVisitor):
 
         # Appeler la fonction
         try:
-            if callable(func) and not isinstance(func, Function):
+            if isinstance(func, BuiltinFunction):
                 # Fonction built-in ou Python native
-                return func(*args, **kwargs)
+                return self._call_builtin_function(func, args, kwargs, node)
             elif isinstance(func, Function):
                 # Fonction définie par l'utilisateur
                 return self._call_user_function(func, args, kwargs, node)
@@ -383,6 +253,12 @@ class Evaluator(ASTVisitor):
         except (TypeError, ExecutionError) as e:
             raise ExecutionError(f"Erreur d'appel de fonction: {e}", node)
     
+    def _call_builtin_function(self, func: BuiltinFunction, args: list, kwargs: dict, node: ASTNode) -> Any:
+        """Appelle une fonction built-in"""
+        return func(*args, **kwargs)
+        # TODO : ExecutionError: Erreur à la ligne 16, colonne 6: Erreur d'appel de fonction: BuiltinMixin._setup_builtins.<locals>.builtin_print() got an unexpected keyword argument 'sep'
+        #         Faire des vérifications sur les arguments pour avoir des erreurs non-python/personnalisées
+
     def _call_user_function(self, func: Function, args: list, kwargs: dict, node: ASTNode) -> Any:
         """Appelle une fonction définie par l'utilisateur"""
         # Créer un nouvel environnement pour la fonction
@@ -439,80 +315,13 @@ class Evaluator(ASTVisitor):
             return e.value
         finally:
             self.current_env = old_env
-    # -------------------------------
-    # Structures de contrôle
-
-    def visit_IfNode(self, node: IfNode) -> Any:
-        """Évalue une condition if/else"""
-        condition = self.visit(node.condition)
-        
-        if condition:
-            result = None
-            for statement in node.then_block:
-                result = self.visit(statement)
-            return result
-        elif node.else_block:
-            result = None
-            for statement in node.else_block:
-                result = self.visit(statement)
-            return result
-        
-        return None
-    
-
-    def visit_BreakNode(self, node: BreakNode) -> None:
-        """Gère l'instruction break"""
-        raise BreakException()
-    
-
-    def visit_ContinueNode(self, node: ContinueNode) -> None:
-        """Gère l'instruction continue"""
-        raise ContinueException()
-    
-
-    def visit_WhileNode(self, node: WhileNode) -> None:
-        """Évalue une boucle while"""
-        try:
-            while self.visit(node.condition):
-                try:
-                    for statement in node.body:
-                        self.visit(statement)
-                except ContinueException:
-                    continue
-        except BreakException:
-            pass
-        
-        return None
-    
-    
-    def visit_ForNode(self, node: ForNode) -> None:
-        """Évalue une boucle for"""
-        iterable = self.visit(node.iterable)
-        
-        try:
-            iter(iterable)
-        except TypeError:
-            raise ExecutionError(f"L'objet de type '{type(iterable).__name__}' n'est pas itérable", node)
-        
-        try:
-            for value in iterable:
-                self.current_env.define(node.variable, value)
-                try:
-                    for statement in node.body:
-                        self.visit(statement)
-                except ContinueException:
-                    continue
-        except BreakException:
-            pass
-        
-        return None
     
     # -------------------------------
     # Fonctions
 
     def visit_FunctionDefNode(self, node: FunctionDefNode) -> None:
         """Définit une fonction"""
-        func = Function(node.name, node.parameters, node.body, self.current_env)
+        func = Function(node.name, node.parameters, node.body, self.current_env, node.return_type)
         self.current_env.define(node.name, func)
         return None
 

@@ -123,7 +123,22 @@ TESTS = {
         ("def add(a, b) { return a + b } array = [add]; array[0](1, 2)", 3),
         ("some_function = 78; some_function()", "Error: n'est pas appelable"),
         ("sqrt(2)", 1.4142135623730951),
-    ]
+    ],
+
+    "types": [
+        ("get_type(none)", "null"),
+        ("get_type(5)", "int"),
+        ("get_type(5.5)", "float"),
+        ("get_type(true)", "bool"),
+        ("get_type(false)", "bool"),
+        ("get_type(\"hello\")", "string"),
+        ("get_type([1, 2, 3])", "list[int]"),
+        ("get_type({'a': 1, 'b': 2})", "dict[string, int]"),
+        ("get_type([1, 2, 3.1])", "list[union[int, float]]"),
+        ("get_type([1, 2, \"3\"])", "list[union[int, string]]"),
+        ("function f(a: int) -> bool {} get_type(f)", "callable[args[int], bool]"),
+        ("get_type(sqrt)", "callable[args[float], float]"),
+    ],
 }
 
 def get_test_categories() -> List[str]:

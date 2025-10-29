@@ -24,7 +24,7 @@
   
   <!-- Version -->
   <text x="450" y="115" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" fill="#475569" text-anchor="middle">
-    Version <tspan font-weight="600">1.0.3</tspan>
+    Version <tspan font-weight="600">1.1.0</tspan>
   </text>
   
   <!-- Description -->
