@@ -19,12 +19,6 @@ class SyntaxicalError(Exception):
 
 # TODO implémenter NOT_IN "not in", détecter tokens: NOT, IN qui se suivent
 
-# FIXME confusion entre [if/else] ternary et [if/else] block
-# some_value = 45 if x > 5 else 67
-# VS
-# some_value = 45
-# if x > 5 { ... } else 67
-
 class BaseParser:
 
     BINARY_PRECEDENCE = {

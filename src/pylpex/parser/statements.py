@@ -62,35 +62,60 @@ class StatementParser(BaseParser):
         return expr
 
 
-    def parse_if(self) -> IfNode: # TODO ajouter la possibilité de faire "else if"
+    def parse_if(self) -> IfNode:
+        """Parse une structure if / else if / else"""
         start_token = self.expect(TokenType.IF)
         self.skip_whitespace_and_comments()
+
+        # Check "if" condition
+        if not self.current_token or self.current_token.type in (TokenType.LBRACE, TokenType.ELSE, TokenType.NEWLINE):
+            raise SyntaxicalError("Condition attendue après 'if'", self.current_token or start_token)
+
         # condition is an expression
         cond = self.parse_expression()
         self.skip_whitespace_and_comments()
         then_block = None
         else_block = None
-        # block or single statement
+
+        # if block or single statement
         if self.current_token and self.current_token.type == TokenType.LBRACE:
             then_block = self.parse_block()
         else:
             # single statement fallback
             stmt = self.parse_statement()
+            if not stmt:
+                raise SyntaxicalError("Instruction ou bloc attendu après la condition 'if'", self.current_token)
             then_block = [stmt] if stmt else []
+        
         self.skip_whitespace_and_comments()
+
+        # else block / else if block
         if self.current_token and self.current_token.type == TokenType.ELSE:
             self.advance()
             self.skip_whitespace_and_comments()
+
             if self.current_token and self.current_token.type == TokenType.LBRACE:
                 else_block = self.parse_block()
+            elif self.current_token and self.current_token.type == TokenType.IF:
+                else_block = [self.parse_if()] # else if block
             else:
                 stmt = self.parse_statement()
+                if not stmt:
+                    raise SyntaxicalError("Instruction attendue après 'else'", self.current_token)
                 else_block = [stmt] if stmt else []
+        
         return IfNode.from_token(start_token, condition=cond, then_block=then_block, else_block=else_block)
 
 
     def parse_while(self) -> WhileNode:
+        """Parse une boucle while (while cond { ... })"""
         start_token = self.expect(TokenType.WHILE)
+        self.skip_whitespace_and_comments()
+
+        # check condition
+        if not self.current_token or self.current_token.type == TokenType.LBRACE:
+            raise SyntaxicalError("Condition attendue après 'while'", self.current_token or start_token)
+        
         cond = self.parse_expression()
         self.skip_whitespace_and_comments()
 
@@ -99,6 +124,8 @@ class StatementParser(BaseParser):
             body = self.parse_block()
         else:
             stmt = self.parse_statement()
+            if not stmt:
+                raise SyntaxicalError("Instruction ou bloc attendu après la condition 'while'", self.current_token)
             body = [stmt] if stmt else []
         self.loop_depth -= 1
 

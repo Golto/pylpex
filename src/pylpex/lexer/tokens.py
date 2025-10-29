@@ -2,7 +2,6 @@ from typing import Tuple
 from enum import Enum
 from dataclasses import dataclass
 
-# TODO add keywords: in, break, continue
 class TokenType(Enum):
     # Data types
     NONE = "NONE"

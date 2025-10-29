@@ -100,6 +100,10 @@ TESTS = {
         ("if true {'Vrai'}", "Vrai"),
         ("if true {'Vrai'} else {'Faux'}", "Vrai"),
         ("if false {'Vrai'} else {'Faux'}", "Faux"),
+        ("if true {'Cas bloc if'} else if false {'Cas bloc else if'} else {'Cas bloc else'}", "Cas bloc if"),
+        ("if false {'Cas bloc if'} else if true {'Cas bloc else if'} else {'Cas bloc else'}", "Cas bloc else if"),
+        ("if false {'Cas bloc if'} else if false {'Cas bloc else if'} else {'Cas bloc else'}", "Cas bloc else"),
+        ("if true {'Cas bloc if'} else if true {'Cas bloc else if'} else {'Cas bloc else'}", "Cas bloc if"),
         ("count = 0; while count < 10 { count += 1 } count", 10),
         ("count = 0; while count < 10 { count += 1; if count == 5 { break } } count", 5),
         ("count = 0; while count < 10 { count += 1; if count == 5 { count+= 10; continue } } count", 15),
@@ -131,7 +135,7 @@ def get_test_cases(category: Optional[str] = None) -> Optional[List[Tuple[str, A
 
 
 def run_tests(tests):
-    from src.pylpex.utils import evaluate
+    from pylpex.utils import evaluate
 
     total = len(tests)
     passed = 0

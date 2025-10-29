@@ -59,6 +59,7 @@ TESTS = [
             "if true { 45 }",
             "if true { 45 } else { 46 }",
             "if true 45",
+            "if cond1 { 45 } else if cond2 { 46 } else { 47 }",
             "while true { 45; 46 }",
             "x in [1, 2, 3]",
             "return", "return some_value",
@@ -75,9 +76,9 @@ def get_test_cases():
     return TESTS
 
 def run_tests(tests):
-    from src.pylpex.lexer import Lexer
-    from src.pylpex.parser import Parser
-    from src.pylpex.utils import format_ast
+    from pylpex.lexer import Lexer
+    from pylpex.parser import Parser
+    from pylpex.utils import format_ast
     for parse_method, lines in tests:
         print(f"  Testing {parse_method.upper()}")
         print("=====================================")
@@ -85,9 +86,9 @@ def run_tests(tests):
             lexer = Lexer(code)
             tokens = lexer.tokenize()
             parser = Parser(tokens)
-            node = parser.__getattribute__(parse_method)()
             print("-------------------------------------")
             print(code)
+            node = parser.__getattribute__(parse_method)()
             print(
                 format_ast(node)
             )

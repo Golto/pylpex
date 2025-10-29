@@ -8,7 +8,7 @@ LANGUAGE_VERSION = __version__
 AUTHOR = __author__
 EMAIL = __email__
 DESCRIPTION = (
-    "Langage de programmation 'jouet' inspiré de Python, "
+    "Langage de programmation expérimental inspiré de Python, "
     "mais avec des différences syntaxiques (ex: blocs avec {} au lieu des indentations)."
 )
 

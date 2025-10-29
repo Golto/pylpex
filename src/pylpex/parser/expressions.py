@@ -111,41 +111,41 @@ class ExpressionParser(BaseParser):
         token = self.current_token
         
         # None
-        if self.current_token.type == TokenType.NONE:
+        if token.type == TokenType.NONE:
             self.advance()
             return NoneNode.from_token(token)
         
         # Numbers
-        if self.current_token.type == TokenType.INTEGER:
-            value = int(self.current_token.value)
+        if token.type == TokenType.INTEGER:
+            value = int(token.value)
             self.advance()
             return NumberNode.from_token(token, value=value, type=NumberType.INTEGER)
         
-        if self.current_token.type == TokenType.FLOAT:
-            value = float(self.current_token.value)
+        if token.type == TokenType.FLOAT:
+            value = float(token.value)
             self.advance()
             return NumberNode.from_token(token, value=value, type=NumberType.FLOAT)
         
         # Strings
-        if self.current_token.type == TokenType.STRING:
-            value = self.current_token.value
+        if token.type == TokenType.STRING:
+            value = token.value
             self.advance()
             return StringNode.from_token(token, value=value)
         
         # Booleans
-        if self.current_token.type == TokenType.BOOLEAN:
-            value = self.current_token.value == 'true'
+        if token.type == TokenType.BOOLEAN:
+            value = token.value == 'true'
             self.advance()
             return BooleanNode.from_token(token, value=value)
         
         # Identifiers
-        if self.current_token.type == TokenType.IDENTIFIER:
-            name = self.current_token.value
+        if token.type == TokenType.IDENTIFIER:
+            name = token.value
             self.advance()
             return IdentifierNode.from_token(token, name=name)
         
         # Parentheses (group)
-        if self.current_token.type == TokenType.LPAREN:
+        if token.type == TokenType.LPAREN:
             self.advance()
             self.skip_whitespace_and_comments()
             expr = self.parse_expression()
@@ -154,12 +154,12 @@ class ExpressionParser(BaseParser):
             return expr
         
         # Lists
-        if self.current_token.type == TokenType.LBRACKET:
+        if token.type == TokenType.LBRACKET:
             return self.parse_list()
 
         # Dictionnaries
-        if self.current_token.type == TokenType.LBRACE:
+        if token.type == TokenType.LBRACE:
             return self.parse_dictionary()
         
-        raise SyntaxicalError(f"Expression inattendue: {self.current_token.type.value}", self.current_token)
+        raise SyntaxicalError(f"Expression inattendue: {token.type.value}", token)
     
