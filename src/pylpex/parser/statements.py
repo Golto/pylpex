@@ -1,6 +1,6 @@
 from pylpex.lexer import TokenType
 from .ASTNodes import *
-from .base import BaseParser, ParseError
+from .base import BaseParser, SyntaxicalError
 
 class StatementParser(BaseParser):
 
@@ -40,7 +40,7 @@ class StatementParser(BaseParser):
 
             # Check that the target is assignable
             if not isinstance(expr, (IdentifierNode, AttributeNode, IndexNode)):
-                raise ParseError("La partie gauche d'une affectation doit être une variable, un attribut ou un index", op_token)
+                raise SyntaxicalError("La partie gauche d'une affectation doit être une variable, un attribut ou un index", op_token)
 
             node = AssignmentNode.from_token(
                 token=op_token,
@@ -111,13 +111,13 @@ class StatementParser(BaseParser):
 
         # variable
         if not (self.current_token and self.current_token.type == TokenType.IDENTIFIER):
-            raise ParseError("Nom de variable attendu après 'for'", self.current_token)
+            raise SyntaxicalError("Nom de variable attendu après 'for'", self.current_token)
         var_name = self.current_token.value
         self.advance()
 
         # 'in' keyword
         if not (self.current_token and self.current_token.type == TokenType.IN):
-            raise ParseError("Mot-clé 'in' attendu dans la boucle for", self.current_token)
+            raise SyntaxicalError("Mot-clé 'in' attendu dans la boucle for", self.current_token)
         self.advance()
 
         # iterable expression
@@ -135,7 +135,7 @@ class StatementParser(BaseParser):
         """Parse l'instruction 'break'"""
         start_token = self.expect(TokenType.BREAK)
         if self.loop_depth == 0:
-            raise ParseError("'break' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
+            raise SyntaxicalError("'break' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
 
         if self.current_token and self.current_token.type == TokenType.SEMICOLON:
             self.advance()
@@ -146,7 +146,7 @@ class StatementParser(BaseParser):
         """Parse l'instruction 'continue'"""
         start_token = self.expect(TokenType.CONTINUE)
         if self.loop_depth == 0:
-            raise ParseError("'continue' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
+            raise SyntaxicalError("'continue' ne peut être utilisé qu'à l'intérieur d'une boucle", self.current_token)
 
         if self.current_token and self.current_token.type == TokenType.SEMICOLON:
             self.advance()

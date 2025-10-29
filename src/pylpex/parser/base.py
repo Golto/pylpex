@@ -3,7 +3,7 @@ from pylpex.lexer import TokenType, Token
 from .ASTNodes import *
 from typing import List, Optional
 
-class ParseError(Exception):
+class SyntaxicalError(Exception):
     """Erreur de syntaxe détectée pendant l'analyse syntaxique"""
     def __init__(self, message: str, token=None):
         self.message = message
@@ -97,7 +97,7 @@ class BaseParser:
     def expect(self, token_type) -> Token:
         """Vérifie que le token courant est du type attendu"""
         if not self.current_token or self.current_token.type != token_type:
-            raise ParseError(
+            raise SyntaxicalError(
                 f"Attendu {token_type.value}, obtenu {self.current_token.type.value if self.current_token else 'EOF'}",
                 self.current_token
             )

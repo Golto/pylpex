@@ -1,15 +1,4 @@
-
-from typing import Optional
-from pylpex.parser.ASTNodes import ASTNode
-
-class RuntimeErrorEx(Exception):
-    def __init__(self, message: str, node: Optional[ASTNode] = None):
-        if node and node.position:
-            line, col = node.position
-            super().__init__(f"Erreur à la ligne {line}, colonne {col}: {message}")
-        else:
-            super().__init__(message)
-
+from .exception import ExecutionError
 
 class Environment:
     """Représente un environnement d'exécution (scope lexical)"""
@@ -26,7 +15,7 @@ class Environment:
         elif self.parent:
             self.parent.assign(name, value)
         else:
-            raise RuntimeErrorEx(f"Variable '{name}' non définie")
+            raise ExecutionError(f"Variable '{name}' non définie")
 
     def lookup(self, name: str):
         if name in self.vars:
@@ -34,7 +23,7 @@ class Environment:
         elif self.parent:
             return self.parent.lookup(name)
         else:
-            raise RuntimeErrorEx(f"Variable '{name}' non définie")
+            raise ExecutionError(f"Variable '{name}' non définie")
         
     def __repr__(self):
         return f"Environment({self.vars}, parent={self.parent})"

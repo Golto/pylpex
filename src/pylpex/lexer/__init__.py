@@ -1,8 +1,9 @@
 from .tokens import Token, TokenType
-from .core import Lexer
+from .core import Lexer, LexicalError
 
 __all__ = [
     "Token",
     "TokenType",
-    "Lexer"
+    "Lexer",
+    "LexicalError"
 ]

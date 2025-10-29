@@ -1,7 +1,8 @@
 
 from typing import Optional
 from pylpex.parser.ASTNodes import *
-from .environment import Environment, RuntimeErrorEx
+from .environment import Environment
+from .exception import ExecutionError
 from .visitor import ASTVisitor
 
 
@@ -97,7 +98,7 @@ class Evaluator(ASTVisitor):
                 result[key] = value
             else:
                 # key = self.visit(key_node) # TODO faire une erreur propre
-                raise RuntimeErrorEx(f"Clé de dictionnaire non hashable: {type(key).__name__}", node)
+                raise ExecutionError(f"Clé de dictionnaire non hashable: {type(key).__name__}", node)
             
         return result
 
@@ -107,8 +108,8 @@ class Evaluator(ASTVisitor):
     def visit_IdentifierNode(self, node: IdentifierNode) -> Any:
         try:
             return self.current_env.lookup(node.name)
-        except RuntimeErrorEx:
-            raise RuntimeErrorEx(f"Variable '{node.name}' non définie", node)
+        except ExecutionError:
+            raise ExecutionError(f"Variable '{node.name}' non définie", node)
 
     def _apply_compound_operator(self, operator: AssignmentOperatorType, current: Any, value: Any, node: ASTNode) -> Any:
         """Applique un opérateur composé (+=, -=, etc.) et retourne la nouvelle valeur"""
@@ -121,16 +122,16 @@ class Evaluator(ASTVisitor):
                 return current * value
             elif operator == AssignmentOperatorType.DIV:
                 if value == 0:
-                    raise RuntimeErrorEx("Division par zéro", node)
+                    raise ExecutionError("Division par zéro", node)
                 return current / value
             elif operator == AssignmentOperatorType.POWER:
                 return current ** value
             elif operator == AssignmentOperatorType.MOD:
                 return current % value
             else:
-                raise RuntimeErrorEx(f"Opérateur composé inconnu: {operator}", node)
+                raise ExecutionError(f"Opérateur composé inconnu: {operator}", node)
         except Exception as e:
-            raise RuntimeErrorEx(f"Erreur d'opération: {e}", node)
+            raise ExecutionError(f"Erreur d'opération: {e}", node)
         
     def visit_AssignmentNode(self, node: AssignmentNode) -> Any:
         value = self.visit(node.value)
@@ -143,8 +144,8 @@ class Evaluator(ASTVisitor):
                 # Opérateurs composés: +=, -=, etc.
                 try:
                     current = self.current_env.lookup(node.target.name)
-                except RuntimeErrorEx:
-                    raise RuntimeErrorEx(f"Variable '{node.target.name}' non définie", node)
+                except ExecutionError:
+                    raise ExecutionError(f"Variable '{node.target.name}' non définie", node)
                 
                 value = self._apply_compound_operator(node.operator, current, value, node)
                 self.current_env.assign(node.target.name, value)
@@ -158,25 +159,25 @@ class Evaluator(ASTVisitor):
                 try:
                     collection[index] = value
                 except (TypeError, KeyError, IndexError) as e:
-                    raise RuntimeErrorEx(f"Erreur d'assignation: {e}", node)
+                    raise ExecutionError(f"Erreur d'assignation: {e}", node)
             else:
                 # Opérateurs composés
                 try:
                     current = collection[index]
                 except (TypeError, KeyError, IndexError) as e:
-                    raise RuntimeErrorEx(f"Erreur de lecture: {e}", node)
+                    raise ExecutionError(f"Erreur de lecture: {e}", node)
                 
                 value = self._apply_compound_operator(node.operator, current, value, node)
                 
                 try:
                     collection[index] = value
                 except (TypeError, KeyError, IndexError) as e:
-                    raise RuntimeErrorEx(f"Erreur d'assignation: {e}", node)
+                    raise ExecutionError(f"Erreur d'assignation: {e}", node)
             
         
         # TODO : Ajouter le cas pour les attributs (x.y = 5) 
         else:
-            raise RuntimeErrorEx(f"Target d'assignation invalide: {type(node.target).__name__}", node)
+            raise ExecutionError(f"Target d'assignation invalide: {type(node.target).__name__}", node)
         
         return value
 
@@ -207,7 +208,7 @@ class Evaluator(ASTVisitor):
                 return left * right
             elif node.operator == BinaryOperatorType.DIV:
                 if right == 0:
-                    raise RuntimeErrorEx("Division par zéro", node) # FIXME double erreur : RuntimeErrorEx: Erreur à la ligne 2, colonne 3: Erreur d'opération: Erreur à la ligne 2, colonne 3: Division par zéro
+                    raise ExecutionError("Division par zéro", node) # FIXME double erreur : ExecutionError: Erreur à la ligne 2, colonne 3: Erreur d'opération: Erreur à la ligne 2, colonne 3: Division par zéro
                 return left / right
             elif node.operator == BinaryOperatorType.POWER:
                 return left ** right
@@ -230,7 +231,7 @@ class Evaluator(ASTVisitor):
             elif node.operator == BinaryOperatorType.NOT_IN:
                 return left not in right
         except Exception as e:
-            raise RuntimeErrorEx(f"Erreur d'opération: {e}", node)
+            raise ExecutionError(f"Erreur d'opération: {e}", node)
 
     # -------------------------------
     # Opérateurs unaires
@@ -246,7 +247,7 @@ class Evaluator(ASTVisitor):
             elif node.operator == UnaryOperatorType.NOT:
                 return not operand
         except Exception as e:
-            raise RuntimeErrorEx(f"Erreur d'opération unaire: {e}", node)
+            raise ExecutionError(f"Erreur d'opération unaire: {e}", node)
     
     # -------------------------------
     # Opérateur ternaire
@@ -270,7 +271,7 @@ class Evaluator(ASTVisitor):
             # Pour les listes : l'index doit être un entier
             if not isinstance(index, int):
                 # FIXME Ne pas utiliser type(index).__name__ (c'est du type Python =( )
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Les indices de liste doivent être des entiers, pas '{type(index).__name__}'",
                     node
                 )
@@ -280,13 +281,13 @@ class Evaluator(ASTVisitor):
                 # Support des indices négatifs comme en Python
                 actual_index = len(collection) + index
                 if actual_index < 0:
-                    raise RuntimeErrorEx(
+                    raise ExecutionError(
                         f"Index de liste hors limites: {index} (longueur: {len(collection)})",
                         node
                     )
                 return collection[actual_index]
             elif index >= len(collection):
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Index de liste hors limites: {index} (longueur: {len(collection)})",
                     node
                 )
@@ -296,7 +297,7 @@ class Evaluator(ASTVisitor):
         elif isinstance(collection, dict):
             # Pour les dictionnaires : vérifier que la clé existe
             if index not in collection:
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Clé '{index}' introuvable dans le dictionnaire",
                     node
                 )
@@ -305,7 +306,7 @@ class Evaluator(ASTVisitor):
         elif isinstance(collection, str):
             # Pour les chaînes : l'index doit être un entier
             if not isinstance(index, int):
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Les indices de chaîne doivent être des entiers, pas '{type(index).__name__}'",
                     node
                 )
@@ -314,13 +315,13 @@ class Evaluator(ASTVisitor):
             if index < 0:
                 actual_index = len(collection) + index
                 if actual_index < 0:
-                    raise RuntimeErrorEx(
+                    raise ExecutionError(
                         f"Index de chaîne hors limites: {index} (longueur: {len(collection)})",
                         node
                     )
                 return collection[actual_index]
             elif index >= len(collection):
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Index de chaîne hors limites: {index} (longueur: {len(collection)})",
                     node
                 )
@@ -328,7 +329,7 @@ class Evaluator(ASTVisitor):
             return collection[index]
         
         else:
-            raise RuntimeErrorEx(
+            raise ExecutionError(
                 f"Le type '{type(collection).__name__}' ne supporte pas l'indexation",
                 node
             )
@@ -341,7 +342,7 @@ class Evaluator(ASTVisitor):
         try:
             return getattr(obj, node.attribute)
         except AttributeError:
-            raise RuntimeErrorEx(
+            raise ExecutionError(
                 f"L'objet de type '{type(obj).__name__}' n'a pas d'attribut '{node.attribute}'",
                 node
             )
@@ -351,8 +352,8 @@ class Evaluator(ASTVisitor):
         if isinstance(node.function, str):
             try:
                 func = self.current_env.lookup(node.function)
-            except RuntimeErrorEx:
-                raise RuntimeErrorEx(f"Fonction '{node.function}' non définie", node)
+            except ExecutionError:
+                raise ExecutionError(f"Fonction '{node.function}' non définie", node)
         else:
             func = self.visit(node.function)
         
@@ -376,11 +377,11 @@ class Evaluator(ASTVisitor):
                 # Fonction définie par l'utilisateur
                 return self._call_user_function(func, args, kwargs, node)
             else:
-                raise RuntimeErrorEx(f"'{func}' n'est pas appelable", node)
+                raise ExecutionError(f"'{func}' n'est pas appelable", node)
         except ReturnException as e:
             return e.value
-        except (TypeError, RuntimeErrorEx) as e:
-            raise RuntimeErrorEx(f"Erreur d'appel de fonction: {e}", node)
+        except (TypeError, ExecutionError) as e:
+            raise ExecutionError(f"Erreur d'appel de fonction: {e}", node)
     
     def _call_user_function(self, func: Function, args: list, kwargs: dict, node: ASTNode) -> Any:
         """Appelle une fonction définie par l'utilisateur"""
@@ -399,7 +400,7 @@ class Evaluator(ASTVisitor):
         
         # Assigner les arguments positionnels
         if len(args) > len(func.parameters):
-            raise RuntimeErrorEx(
+            raise ExecutionError(
                 f"Trop d'arguments pour '{func.name}': attendu {len(func.parameters)}, reçu {len(args)}",
                 node
             )
@@ -420,7 +421,7 @@ class Evaluator(ASTVisitor):
                 self.current_env = old_env
                 func_env.define(param.name, default_val)
             else:
-                raise RuntimeErrorEx(
+                raise ExecutionError(
                     f"Argument manquant pour le paramètre '{param.name}' de '{func.name}'",
                     node
                 )
@@ -491,7 +492,7 @@ class Evaluator(ASTVisitor):
         try:
             iter(iterable)
         except TypeError:
-            raise RuntimeErrorEx(f"L'objet de type '{type(iterable).__name__}' n'est pas itérable", node)
+            raise ExecutionError(f"L'objet de type '{type(iterable).__name__}' n'est pas itérable", node)
         
         try:
             for value in iterable:

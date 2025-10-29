@@ -1,10 +1,10 @@
 
 from .core import Parser
-from .base import ParseError
+from .base import SyntaxicalError
 from .ASTNodes import ASTNode
 
 __all__ = [
     "Parser",
-    "ParseError",
+    "SyntaxicalError",
     "ASTNode",
 ]

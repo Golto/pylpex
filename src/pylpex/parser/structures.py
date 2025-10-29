@@ -1,6 +1,6 @@
 from pylpex.lexer import TokenType
 from .ASTNodes import *
-from .base import BaseParser, ParseError
+from .base import BaseParser, SyntaxicalError
 
 class StructureParser(BaseParser):
 

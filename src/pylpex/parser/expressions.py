@@ -1,6 +1,6 @@
 from pylpex.lexer import TokenType
 from .ASTNodes import *
-from .base import BaseParser, ParseError
+from .base import BaseParser, SyntaxicalError
 
 
 class ExpressionParser(BaseParser):
@@ -22,7 +22,7 @@ class ExpressionParser(BaseParser):
                 cond = self.parse_expression()
                 self.skip_whitespace_and_comments()
                 if not self.current_token or self.current_token.type != TokenType.ELSE:
-                    raise ParseError("Ternary 'if' sans 'else'", token)
+                    raise SyntaxicalError("Ternary 'if' sans 'else'", token)
                 self.advance()  # consume 'else'
                 false_expr = self.parse_expression()
                 left = TernaryNode.from_token(token, condition=cond, true_expr=left, false_expr=false_expr)
@@ -41,7 +41,7 @@ class ExpressionParser(BaseParser):
                 right = self.parse_expression(next_min)
                 binop = self.BINARY_TOKEN_TO_ENUM.get(token.type)
                 if not binop:
-                    raise ParseError(f"Opérateur binaire non-supporté: {token.type}", token)
+                    raise SyntaxicalError(f"Opérateur binaire non-supporté: {token.type}", token)
                 left = BinaryOpNode.from_token(token, left=left, operator=binop, right=right)
                 continue
 
@@ -82,7 +82,7 @@ class ExpressionParser(BaseParser):
             if token.type == TokenType.DOT:
                 self.advance()
                 if not self.current_token or self.current_token.type != TokenType.IDENTIFIER:
-                    raise ParseError("Attribut attendu après '.'", self.current_token)
+                    raise SyntaxicalError("Attribut attendu après '.'", self.current_token)
                 attr_name = self.current_token.value
                 self.advance()
                 node = AttributeNode.from_token(token, object=node, attribute=attr_name)
@@ -106,7 +106,7 @@ class ExpressionParser(BaseParser):
         self.skip_whitespace_and_comments()
         
         if not self.current_token:
-            raise ParseError("Expression attendue, obtenu EOF")
+            raise SyntaxicalError("Expression attendue, obtenu EOF")
         
         token = self.current_token
         
@@ -161,5 +161,5 @@ class ExpressionParser(BaseParser):
         if self.current_token.type == TokenType.LBRACE:
             return self.parse_dictionary()
         
-        raise ParseError(f"Expression inattendue: {self.current_token.type.value}", self.current_token)
+        raise SyntaxicalError(f"Expression inattendue: {self.current_token.type.value}", self.current_token)
     

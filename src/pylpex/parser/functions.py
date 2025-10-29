@@ -1,13 +1,13 @@
 from pylpex.lexer import TokenType
 from .ASTNodes import *
-from .base import BaseParser, ParseError
+from .base import BaseParser, SyntaxicalError
 
 class FunctionParser(BaseParser):
 
     def parse_function_def(self) -> FunctionDefNode:
         func_token = self.expect(TokenType.FUNCTION)
         if not (self.current_token and self.current_token.type == TokenType.IDENTIFIER):
-            raise ParseError("Nom de fonction attendu", self.current_token)
+            raise SyntaxicalError("Nom de fonction attendu", self.current_token)
         name = self.current_token.value
         self.advance()
         params = self.parse_parameter_list()
@@ -25,7 +25,7 @@ class FunctionParser(BaseParser):
         if self.current_token and self.current_token.type != TokenType.RPAREN:
             while True:
                 if self.current_token.type != TokenType.IDENTIFIER:
-                    raise ParseError("Nom de paramètre attendu", self.current_token)
+                    raise SyntaxicalError("Nom de paramètre attendu", self.current_token)
                 name_token = self.current_token
                 self.advance()
                 default_value = None
