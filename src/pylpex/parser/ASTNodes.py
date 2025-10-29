@@ -140,6 +140,8 @@ class BinaryOperatorType(TypeEnum):
     GTE = ">="
     IN = "in"
     NOT_IN = "not in"
+    IS = "is"
+    NOT_IS = "is not"
 
 class UnaryOperatorType(TypeEnum):
     POSITIVE = "+"

@@ -27,6 +27,14 @@ class ExpressionParser(BaseParser):
                 false_expr = self.parse_expression()
                 left = TernaryNode.from_token(token, condition=cond, true_expr=left, false_expr=false_expr)
                 continue
+            
+            # 'not in' special case
+            if token.type == TokenType.NOT and self.peek() and self.peek().type == TokenType.IN:
+                self.advance()  # consume 'not'
+                self.advance()  # consume 'in'
+                right = self.parse_expression(self.BINARY_PRECEDENCE[TokenType.IN] + 1)
+                left = BinaryOpNode(left=left, operator=BinaryOperatorType.NOT_IN, right=right)
+                continue
 
             # binary operator
             if token.type in self.BINARY_PRECEDENCE:

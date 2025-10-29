@@ -62,6 +62,7 @@ TESTS = [
             "if cond1 { 45 } else if cond2 { 46 } else { 47 }",
             "while true { 45; 46 }",
             "x in [1, 2, 3]",
+            "x not in [1, 2, 3]",
             "return", "return some_value",
             "for x in list { break }",
             "for x in list { continue }",

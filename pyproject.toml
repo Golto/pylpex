@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pylpex"
-version = "1.0.2"
+version = "1.0.3"
 description = "Langage de programmation expérimental inspiré de Python."
 readme = "README.md"
 requires-python = ">=3.13"

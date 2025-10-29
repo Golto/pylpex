@@ -17,8 +17,6 @@ class SyntaxicalError(Exception):
 # self.strict = False -> typage facultatif et ne cause pas d'erreur
 # self.strict = True -> typage obligatoire et cause une erreur si non respecté
 
-# TODO implémenter NOT_IN "not in", détecter tokens: NOT, IN qui se suivent
-
 class BaseParser:
 
     BINARY_PRECEDENCE = {
@@ -57,7 +55,6 @@ class BaseParser:
         TokenType.LTE: BinaryOperatorType.LTE,
         TokenType.GTE: BinaryOperatorType.GTE,
         TokenType.IN: BinaryOperatorType.IN,
-        TokenType.NOT: BinaryOperatorType.NOT_IN, # TODO: vérifier si c'est correct
     }
 
     UNARY_TOKEN_TO_ENUM = {
