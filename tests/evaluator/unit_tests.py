@@ -122,10 +122,10 @@ TESTS = {
         ("def add(a, b) { return a + b } add_ = add; add_(1, 2)", 3),
         ("def add(a, b) { return a + b } array = [add]; array[0](1, 2)", 3),
         ("some_function = 78; some_function()", "Error: n'est pas appelable"),
-        ("sqrt(2)", 1.4142135623730951),
     ],
 
     "types": [
+        # type introspection
         ("get_type(none)", "null"),
         ("get_type(5)", "int"),
         ("get_type(5.5)", "float"),
@@ -138,6 +138,47 @@ TESTS = {
         ("get_type([1, 2, \"3\"])", "list[union[int, string]]"),
         ("function f(a: int) -> bool {} get_type(f)", "callable[args[int], bool]"),
         ("get_type(sqrt)", "callable[args[float], float]"),
+        # type checking
+        ("is_type(5, 'int')", True),
+        ("is_type(5, 'float')", False),
+        ("is_type(5, 'union[int, float]')", True),
+        ("is_type(5.5, 'union[int, float]')", True),
+        ("is_type(5.5, 'union[int, string]')", False),
+        ("is_type([1, 2, 3], 'list[int]')", True),
+        ("is_type([1, 2, 3.1], 'list[int]')", False),
+        ("is_type([1, 2, 3.1], 'list[union[int, float]]')", True),
+        # TODO rajouter des cas par rapport aux fonctions
+
+        # type conversion
+        ("convert_to('5', 'int')", 5),
+        ("convert_to('5.5', 'float')", 5.5),
+        ("convert_to(5, 'string')", "5"),
+        ("convert_to(5.5, 'string')", "5.5"),
+        # TODO rajouter ces cas complexes
+    ],
+
+    "builtins": [
+        # math
+        ("sqrt(2)", 1.4142135623730951),
+        ("abs(-3.1)", 3.1),
+        ("min(1, 2, 3)", 1),
+        ("max(1, 2, 3)", 3),
+        # string
+        ("capitalize('hElLo')", "Hello"),
+        ("lower('hElLo')", "hello"),
+        ("upper('hElLo')", "HELLO"),
+        ("split('hello', 'e')", ["h", "llo"]),
+        ("join(['h', 'llo'], 'e')", "hello"),
+        # list
+        ("len([1, 2, 3])", 3),
+        ("array = [1, 2, 3]; append(array, 4); array", [1, 2, 3, 4]),
+        ("array = [1, 2, 3]; x = pop(array); [x, array]", [3, [1, 2]]),
+        ("array = [1, 2, 3]; other = array; array[0] = 4; other", [4, 2, 3]),
+        ("array = [1, 2, 3]; other = copy(array); array[0] = 4; other", [1, 2, 3]),
+        ("array = [1, 2, 3]; other = copy(array); array[0] = 4; [array, other]", [[4, 2, 3], [1, 2, 3]]),
+        ("array = [1, 2, 3]; reverse(array); array", [3, 2, 1]),
+        ("array = [1, 3, 2]; sort(array); array", [1, 2, 3]),
+        ("range(1, 3)", [1, 2, 3]),
     ],
 }
 
