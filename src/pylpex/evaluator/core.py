@@ -46,6 +46,14 @@ mixins = [
 # self.strict_typing = True -> typage obligatoire et cause une erreur si non respecté
 # cf https://chatgpt.com/g/g-p-68f0432b8c7081918f5e46292e69206b/c/69019e0a-55ec-832b-9cef-8b8f4ef0d9c1
 
+# visit_AssignmentNode
+#       strict typing -> vérifier le type déclarée vs le type réelle
+#       non strict typing -> pas de vérification
+# _call_user_function
+#       strict typing -> vérifier le type des arguments vs le type des paramètres
+#           si possible, vérifier le type de retour vs le type de la variable de retour
+#       non strict typing -> pas de vérification
+
 class Evaluator(ASTVisitor, *mixins):
     """Évalue l'AST dans un environnement donné"""
 
@@ -124,6 +132,12 @@ class Evaluator(ASTVisitor, *mixins):
 
         return TypeInfo(BaseType.ANY)
     
+
+    def _is_compatible(self, actual: TypeInfo, expected: TypeInfo) -> bool: # TODO implémenter la vérification de compatibilité des typages
+        pass
+
+    def _raise_if_incompatible(self, node: ASTNode, ) -> None: # TODO implémenter la levée d'erreurs en cas de conflits de types
+        pass
 
     # -------------------------------
     # Expressions
