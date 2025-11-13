@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 from enum import Enum
 from dataclasses import dataclass
 
@@ -76,10 +76,17 @@ class Token:
     line: int
     column: int
 
+    _actual_value: Optional[str] = None
+
     def __post_init__(self):
         if not isinstance(self.type, TokenType):
             raise ValueError("Token type must be a TokenType enum member")
         
     def get_position(self) -> Tuple[int, int]:
         return (self.line, self.column)
+    
+    def get_actual_value(self) -> str:
+        if self._actual_value is not None:
+            return self._actual_value
+        return self.value
 

@@ -70,7 +70,7 @@ class Lexer:
         while self.current_char and self.current_char in ' \t\r':
             self.advance()
 
-    def read_comment(self) -> Token:
+    def read_comment(self) -> Optional[Token]:
         """Lit les commentaires (// une ligne ou /* bloc */)"""
         start_line = self.line
         start_column = self.column
@@ -83,7 +83,7 @@ class Lexer:
             while self.current_char and self.current_char != '\n':
                 comment += self.current_char
                 self.advance()
-            return Token(TokenType.COMMENT, comment.strip(), start_line, start_column)
+            return Token(TokenType.COMMENT, comment.strip(), start_line, start_column, _actual_value=f"//{comment}")
         
         # Commentaire bloc /* ... */
         elif self.current_char == '/' and self.peek() == '*':
@@ -98,8 +98,8 @@ class Lexer:
                 comment += self.current_char
                 self.advance()
             else:
-                raise SyntaxError("Commentaire bloc non terminé", start_line, start_column)
-            return Token(TokenType.COMMENT, comment.strip(), start_line, start_column)
+                raise LexicalError("Commentaire bloc non terminé", start_line, start_column)
+            return Token(TokenType.COMMENT, comment.strip(), start_line, start_column, _actual_value=f"/*{comment}*/")
         
         return None
 
@@ -151,7 +151,7 @@ class Lexer:
                 self.advance()
 
         self.advance()  # Skip closing quote
-        return Token(TokenType.STRING, value, start_line, start_column)
+        return Token(TokenType.STRING, value, start_line, start_column, _actual_value=f"{quote_char}{value}{quote_char}")
     
     def read_identifier(self) -> Token:
         """Lit un identifiant ou mot-clé"""
@@ -182,11 +182,14 @@ class Lexer:
             if self.current_char == '/':
                 next_char = self.peek()
                 if next_char == '/' or next_char == '*':
-                    return self.read_comment()
+                    comment = self.read_comment()
+                    if comment is None:
+                        continue
+                    return comment
 
             # Nouvelle ligne
             if self.current_char == '\n':
-                token = Token(TokenType.NEWLINE, '\\n', self.line, self.column)
+                token = Token(TokenType.NEWLINE, '\\n', self.line, self.column, _actual_value='\n')
                 self.advance()
                 return token
             
